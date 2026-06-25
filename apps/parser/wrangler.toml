@@ -15,9 +15,10 @@ USER_AGENT = "devtrends-en-bot/0.1 (+https://example.com)"
 BACKFILL_LIMIT = "20"          # initial cap; raise/remove for full backfill
 PROCESS_BATCH = "1"            # articles per tick (each = EN + 8 locale translations)
 TARGET_LOCALES = "es,de,zh,ja,fr,pt,it,nl,pl"   # locales to translate into (besides English)
-OPENAI_BASE_URL = "https://api.openai.com/v1"
-OPENAI_MODEL = "gpt-4o-mini"
-R2_PUBLIC_BASE = "https://img.example.com"   # R2 custom domain (set to yours)
+OPENAI_MODEL = "MiniMaxAI/MiniMax-M2.7"
+# OPENAI_BASE_URL + OPENAI_API_KEY are Worker secrets (keeps the private endpoint
+# out of the repo): wrangler secret put OPENAI_BASE_URL / OPENAI_API_KEY
+R2_PUBLIC_BASE = "https://pub-e9ef8e20353d4db4867193b8578534d8.r2.dev"
 SITE_URL = "https://example.com"             # your custom domain
 # CF_ZONE_ID is needed only if you enable cache purge-on-publish:
 # CF_ZONE_ID = "<zone id>"
@@ -30,7 +31,7 @@ SITE_URL = "https://example.com"             # your custom domain
 [[d1_databases]]
 binding = "DB"
 database_name = "devtrends"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "a3c30e32-6cfe-48d5-860b-1a8775e9d3cf"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
