@@ -40,7 +40,7 @@ const basePath = `/sections/${section.slug}`;
 >
   <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <div class="hidden lg:block">
-      <Sidebar languages={languages} />
+      <Sidebar languages={languages} activeSection={section.slug} />
     </div>
 
     <div>

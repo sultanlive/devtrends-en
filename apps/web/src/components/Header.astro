@@ -1,7 +1,8 @@
 ---
 import { getEnv } from "../lib/site";
-import { listLanguages } from "../lib/db";
+import { listLanguages, publishedTagSets } from "../lib/db";
 import { langColor, langLabel } from "../lib/lang";
+import { SECTIONS, tagsMatchSection } from "../lib/sections";
 
 export interface Props {
   siteName: string;
@@ -10,7 +11,11 @@ const { siteName } = Astro.props;
 const q = Astro.url.searchParams.get("q") ?? "";
 const brand = siteName.replace(/\s+EN$/i, "");
 const env = getEnv(Astro.locals);
-const languages = await listLanguages(env.DB);
+const [languages, tagSets] = await Promise.all([
+  listLanguages(env.DB),
+  publishedTagSets(env.DB),
+]);
+const sections = SECTIONS.filter((s) => tagSets.some((ts) => tagsMatchSection(ts, s)));
 ---
 
 <header
@@ -66,12 +71,25 @@ const languages = await listLanguages(env.DB);
     {languages.length > 0 && (
       <>
         <p class="eyebrow mt-3 mb-1 text-muted dark:text-muted-dark">Languages</p>
-        <div class="max-h-64 overflow-y-auto">
+        <div class="max-h-56 overflow-y-auto">
           {languages.map((l) => (
             <a href={`/${l.language}`} class="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm">
               <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${langColor(l.language)}`}></span>
               <span class="truncate font-medium">{langLabel(l.language)}</span>
               <span class="ml-auto font-mono text-xs text-muted dark:text-muted-dark">{l.n}</span>
+            </a>
+          ))}
+        </div>
+      </>
+    )}
+    {sections.length > 0 && (
+      <>
+        <p class="eyebrow mt-3 mb-1 text-muted dark:text-muted-dark">Sections</p>
+        <div>
+          {sections.map((s) => (
+            <a href={`/sections/${s.slug}`} class="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm">
+              <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${s.color}`}></span>
+              <span class="truncate font-medium">{s.title}</span>
             </a>
           ))}
         </div>

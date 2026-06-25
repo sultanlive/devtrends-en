@@ -1,15 +1,27 @@
 ---
 import type { LanguageCount } from "../lib/db";
+import { getEnv } from "../lib/site";
+import { publishedTagSets } from "../lib/db";
 import { langColor, langLabel } from "../lib/lang";
+import { SECTIONS, tagsMatchSection } from "../lib/sections";
 
 export interface Props {
   languages: LanguageCount[];
   active?: string;
+  activeSection?: string;
 }
-const { languages, active } = Astro.props;
+const { languages, active, activeSection } = Astro.props;
+
+// Non-empty sections with counts (one query).
+const env = getEnv(Astro.locals);
+const tagSets = await publishedTagSets(env.DB);
+const sections = SECTIONS.map((section) => ({
+  section,
+  count: tagSets.filter((ts) => tagsMatchSection(ts, section)).length,
+})).filter((x) => x.count > 0);
 ---
 
-<aside class="lg:sticky lg:top-20 lg:self-start">
+<aside class="lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
   <p class="eyebrow mb-3 text-muted dark:text-muted-dark">Languages</p>
   <nav class="flex flex-col" aria-label="Languages">
     {languages.map((l) => {
@@ -39,4 +51,38 @@ const { languages, active } = Astro.props;
       );
     })}
   </nav>
+
+  {sections.length > 0 && (
+    <>
+      <p class="eyebrow mb-3 mt-7 text-muted dark:text-muted-dark">Sections</p>
+      <nav class="flex flex-col" aria-label="Sections">
+        {sections.map(({ section, count }) => {
+          const isActive = activeSection === section.slug;
+          return (
+            <a
+              href={`/sections/${section.slug}`}
+              aria-current={isActive ? "page" : undefined}
+              class:list={[
+                "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition",
+                isActive
+                  ? "bg-ink text-paper dark:bg-ink-dark dark:text-paper-dark"
+                  : "text-ink hover:bg-line dark:text-ink-dark dark:hover:bg-line-dark",
+              ]}
+            >
+              <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${section.color}`}></span>
+              <span class="truncate font-medium">{section.title}</span>
+              <span
+                class:list={[
+                  "ml-auto font-mono text-xs",
+                  isActive ? "text-paper/70 dark:text-paper-dark/70" : "text-muted dark:text-muted-dark",
+                ]}
+              >
+                {count}
+              </span>
+            </a>
+          );
+        })}
+      </nav>
+    </>
+  )}
 </aside>
