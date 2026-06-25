@@ -2,7 +2,7 @@
 import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import { getEnv, canonical } from "../lib/site";
+import { getEnv, canonical, siteUrl } from "../lib/site";
 import { LOCALES, DEFAULT_LOCALE, localeHref } from "../lib/i18n";
 
 export interface Props {
@@ -20,11 +20,12 @@ const { title, description = "", path = "/", ogImage = null, ogType = "website",
 const env = getEnv(Astro.locals);
 const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 const siteName = env.SITE_NAME;
+const site = siteUrl(Astro.locals, Astro.url);
 
-const canonicalUrl = canonical(env.SITE_URL, localeHref(locale, path));
+const canonicalUrl = canonical(site, localeHref(locale, path));
 const alternates = LOCALES.map((loc) => ({
   loc,
-  href: canonical(env.SITE_URL, localeHref(loc, path)),
+  href: canonical(site, localeHref(loc, path)),
 }));
 ---
 
@@ -39,7 +40,7 @@ const alternates = LOCALES.map((loc) => ({
 
     {/* hreflang alternates for every locale + x-default */}
     {alternates.map((a) => <link rel="alternate" hreflang={a.loc} href={a.href} />)}
-    <link rel="alternate" hreflang="x-default" href={canonical(env.SITE_URL, localeHref(DEFAULT_LOCALE, path))} />
+    <link rel="alternate" hreflang="x-default" href={canonical(site, localeHref(DEFAULT_LOCALE, path))} />
 
     <!-- Open Graph -->
     <meta property="og:title" content={title} />

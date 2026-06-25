@@ -1,12 +1,11 @@
 import type { APIContext } from "astro";
-import { getEnv, canonical } from "../lib/site";
+import { canonical, siteUrl } from "../lib/site";
 
 export async function GET(context: APIContext): Promise<Response> {
-  const env = getEnv(context.locals);
   const body = `User-agent: *
 Allow: /
 
-Sitemap: ${canonical(env.SITE_URL, "/sitemap.xml")}
+Sitemap: ${canonical(siteUrl(context.locals, context.url), "/sitemap.xml")}
 `;
   return new Response(body, {
     headers: {

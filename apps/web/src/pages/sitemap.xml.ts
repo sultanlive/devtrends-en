@@ -1,5 +1,5 @@
 import type { APIContext } from "astro";
-import { getEnv, canonical, articlePath } from "../lib/site";
+import { getEnv, canonical, articlePath, siteUrl } from "../lib/site";
 import { allPublishedUrls, listLanguages, allTags, publishedTagSets } from "../lib/db";
 import { SECTIONS, tagsMatchSection } from "../lib/sections";
 import { LOCALES, DEFAULT_LOCALE, localeHref } from "../lib/i18n";
@@ -28,7 +28,8 @@ export async function GET(context: APIContext): Promise<Response> {
     ...articles.map((a) => ({ path: articlePath(a.language, a.slug), lastmod: a.source_lastmod ?? a.updated_at })),
   ];
 
-  const abs = (loc: string, p: string) => canonical(env.SITE_URL, localeHref(loc, p));
+  const site = siteUrl(context.locals, context.url);
+  const abs = (loc: string, p: string) => canonical(site, localeHref(loc, p));
 
   const urls = paths
     .flatMap(({ path, lastmod }) => {

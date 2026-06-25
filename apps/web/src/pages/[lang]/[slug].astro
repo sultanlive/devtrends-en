@@ -1,7 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import Sidebar from "../../components/Sidebar.astro";
-import { getEnv, articlePath, formatDate, setCacheHeaders, canonical } from "../../lib/site";
+import { getEnv, articlePath, formatDate, setCacheHeaders, canonical, siteUrl } from "../../lib/site";
 import { getArticle, parseTags, listLanguages, relatedArticles } from "../../lib/db";
 import { langColor, langLabel } from "../../lib/lang";
 import { DEFAULT_LOCALE, localeHref, t } from "../../lib/i18n";
@@ -23,7 +23,7 @@ const [languages, related] = await Promise.all([
 ]);
 
 const path = articlePath(article.language, article.slug);
-const url = canonical(env.SITE_URL, localeHref(locale, path));
+const url = canonical(siteUrl(Astro.locals, Astro.url), localeHref(locale, path));
 const date = formatDate(article.source_lastmod ?? article.updated_at, locale);
 const description = article.meta_description ?? article.excerpt_en ?? "";
 const color = langColor(article.language);

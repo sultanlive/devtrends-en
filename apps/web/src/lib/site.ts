@@ -7,10 +7,24 @@ export function getEnv(locals: App.Locals): CfEnv {
   return {
     DB: env.DB as D1Database,
     BUCKET: env.BUCKET as R2Bucket,
-    SITE_URL: env.SITE_URL ?? "http://localhost:4321",
+    SITE_URL: env.SITE_URL ?? "",
     R2_PUBLIC_BASE: env.R2_PUBLIC_BASE ?? "",
     SITE_NAME: env.SITE_NAME ?? "DevTrends EN",
   };
+}
+
+/**
+ * The canonical site origin. Uses the current request host by default (so it
+ * "just works" in dev and prod); set SITE_URL to a real domain to pin the
+ * canonical host (recommended in production to avoid the *.pages.dev preview
+ * self-canonicalizing).
+ */
+export function siteUrl(locals: App.Locals, url: URL): string {
+  const configured = getEnv(locals).SITE_URL.trim().replace(/\/$/, "");
+  if (configured && configured !== "https://example.com") return configured;
+  const isLocal = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  // Behind Cloudflare the public origin is https; force it (the internal scheme can be http).
+  return !isLocal && url.protocol === "http:" ? url.origin.replace(/^http:/, "https:") : url.origin;
 }
 
 /** Absolute canonical URL for a path, based on configured SITE_URL. */

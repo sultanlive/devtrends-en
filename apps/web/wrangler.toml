@@ -24,6 +24,10 @@ binding = "SESSION"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
 [vars]
-SITE_URL = "https://example.com"
+# Leave SITE_URL empty to use the current request host for canonical/hreflang/
+# sitemap (works in dev and prod automatically). Set it to a real domain to pin
+# the canonical host in production (recommended once you have a custom domain,
+# so the *.pages.dev preview doesn't self-canonicalize).
+SITE_URL = ""
 R2_PUBLIC_BASE = "https://img.example.com"
 SITE_NAME = "DevTrends EN"
