@@ -11,5 +11,7 @@ interface CfEnv {
 type Runtime = import("@astrojs/cloudflare").Runtime<CfEnv>;
 
 declare namespace App {
-  interface Locals extends Runtime {}
+  interface Locals extends Runtime {
+    locale: string;
+  }
 }

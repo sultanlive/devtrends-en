@@ -13,7 +13,8 @@ crons = ["*/3 * * * *"]
 SOURCE_BASE = "https://devtrends.ru"
 USER_AGENT = "devtrends-en-bot/0.1 (+https://example.com)"
 BACKFILL_LIMIT = "20"          # initial cap; raise/remove for full backfill
-PROCESS_BATCH = "2"            # pending articles processed per cron tick
+PROCESS_BATCH = "1"            # articles per tick (each = EN + 8 locale translations)
+TARGET_LOCALES = "es,de,ja,fr,pt,it,nl,pl"   # locales to translate into (besides English)
 OPENAI_BASE_URL = "https://api.openai.com/v1"
 OPENAI_MODEL = "gpt-4o-mini"
 R2_PUBLIC_BASE = "https://img.example.com"   # R2 custom domain (set to yours)

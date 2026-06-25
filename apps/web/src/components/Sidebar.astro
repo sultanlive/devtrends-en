@@ -5,6 +5,7 @@ import { publishedTagSets } from "../lib/db";
 import { langColor, langLabel } from "../lib/lang";
 import { SECTIONS, tagsMatchSection } from "../lib/sections";
 import SectionIcon from "./SectionIcon.astro";
+import { localeHref, sectionTitle, t, DEFAULT_LOCALE } from "../lib/i18n";
 
 export interface Props {
   languages: LanguageCount[];
@@ -12,6 +13,7 @@ export interface Props {
   activeSection?: string;
 }
 const { languages, active, activeSection } = Astro.props;
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 
 // Non-empty sections with counts (one query).
 const env = getEnv(Astro.locals);
@@ -23,13 +25,13 @@ const sections = SECTIONS.map((section) => ({
 ---
 
 <aside class="lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-  <p class="eyebrow mb-3 text-muted dark:text-muted-dark">Languages</p>
+  <p class="eyebrow mb-3 text-muted dark:text-muted-dark">{t(locale, "languages")}</p>
   <nav class="flex flex-col" aria-label="Languages">
     {languages.map((l) => {
       const isActive = active === l.language;
       return (
         <a
-          href={`/${l.language}`}
+          href={localeHref(locale, `/${l.language}`)}
           aria-current={isActive ? "page" : undefined}
           class:list={[
             "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition",
@@ -55,13 +57,13 @@ const sections = SECTIONS.map((section) => ({
 
   {sections.length > 0 && (
     <>
-      <p class="eyebrow mb-3 mt-7 text-muted dark:text-muted-dark">Sections</p>
+      <p class="eyebrow mb-3 mt-7 text-muted dark:text-muted-dark">{t(locale, "sections")}</p>
       <nav class="flex flex-col" aria-label="Sections">
         {sections.map(({ section, count }) => {
           const isActive = activeSection === section.slug;
           return (
             <a
-              href={`/sections/${section.slug}`}
+              href={localeHref(locale, `/sections/${section.slug}`)}
               aria-current={isActive ? "page" : undefined}
               class:list={[
                 "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition",
@@ -71,7 +73,7 @@ const sections = SECTIONS.map((section) => ({
               ]}
             >
               <SectionIcon name={section.icon} color={isActive ? undefined : section.color} class="h-4 w-4 shrink-0" />
-              <span class="truncate font-medium">{section.title}</span>
+              <span class="truncate font-medium">{sectionTitle(locale, section.slug, section.title)}</span>
               <span
                 class:list={[
                   "ml-auto font-mono text-xs",

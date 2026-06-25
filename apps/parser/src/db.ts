@@ -1,5 +1,24 @@
 import type { Env, ArticleRow, ScrapedArticle, TranslatedArticle } from "./types";
 
+/** Upsert a per-locale translation for an article. */
+export async function saveTranslation(
+  env: Env,
+  articleId: number,
+  locale: string,
+  tr: TranslatedArticle
+): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO article_translations (article_id, locale, title, excerpt, body_html, meta_description, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(article_id, locale) DO UPDATE SET
+       title = excluded.title, excerpt = excluded.excerpt,
+       body_html = excluded.body_html, meta_description = excluded.meta_description,
+       updated_at = datetime('now')`
+  )
+    .bind(articleId, locale, tr.title, tr.excerpt, tr.body_html, tr.meta_description)
+    .run();
+}
+
 /** Derive `{language}` / `{slug}` from a source URL like /go/rclone-rclone. */
 export function parseSourceUrl(
   url: string,

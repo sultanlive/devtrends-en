@@ -2,13 +2,15 @@
 import type { Article } from "../lib/db";
 import { articlePath, formatDate } from "../lib/site";
 import { langColor, langLabel } from "../lib/lang";
+import { localeHref, DEFAULT_LOCALE } from "../lib/i18n";
 
 export interface Props {
   article: Article;
 }
 const { article } = Astro.props;
-const href = articlePath(article.language, article.slug);
-const date = formatDate(article.source_lastmod ?? article.updated_at);
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
+const href = localeHref(locale, articlePath(article.language, article.slug));
+const date = formatDate(article.source_lastmod ?? article.updated_at, locale);
 const color = langColor(article.language);
 ---
 

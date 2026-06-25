@@ -1,5 +1,17 @@
 import type { Env, TranslatedArticle } from "./types";
 
+/** Locale code -> language name for translation prompts. */
+export const LOCALE_LANG: Record<string, string> = {
+  es: "Spanish",
+  de: "German",
+  ja: "Japanese",
+  fr: "French",
+  pt: "Portuguese",
+  it: "Italian",
+  nl: "Dutch",
+  pl: "Polish",
+};
+
 const SYSTEM_PROMPT = `You are a professional technical translator. You translate developer-focused articles from Russian to natural, fluent English written for an English-speaking software audience.
 
 STRICT RULES:
@@ -23,22 +35,9 @@ function stripFences(s: string): string {
   return t;
 }
 
-/**
- * Translate one article via an OpenAI-compatible Chat Completions endpoint.
- * Provider is fully selected by env (OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_API_KEY),
- * so swapping OpenAI -> DeepSeek -> any compatible endpoint needs no code change.
- */
-export async function translateArticle(
-  env: Env,
-  title: string,
-  bodyHtml: string
-): Promise<TranslatedArticle> {
+/** One OpenAI-compatible Chat Completions call returning a parsed JSON object. */
+async function callLlmJson(env: Env, system: string, user: string): Promise<Partial<TranslatedArticle>> {
   const endpoint = `${env.OPENAI_BASE_URL.replace(/\/$/, "")}/chat/completions`;
-  const userContent =
-    `Translate this article to English.\n\n` +
-    `TITLE (Russian):\n${title}\n\n` +
-    `BODY_HTML (Russian):\n${bodyHtml}`;
-
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -51,34 +50,72 @@ export async function translateArticle(
       max_tokens: 8000,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userContent },
+        { role: "system", content: system },
+        { role: "user", content: user },
       ],
     }),
   });
-
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     throw new Error(`LLM ${res.status}: ${errText.slice(0, 300)}`);
   }
-
-  const data = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error("LLM returned empty content");
-
-  let parsed: Partial<TranslatedArticle>;
   try {
-    parsed = JSON.parse(stripFences(content));
+    return JSON.parse(stripFences(content));
   } catch {
     throw new Error("LLM did not return valid JSON");
   }
+}
 
-  if (!parsed.title || !parsed.body_html) {
-    throw new Error("LLM JSON missing title/body_html");
-  }
+/**
+ * Translate one article (Russian source -> English) via an OpenAI-compatible
+ * endpoint. Provider is selected entirely by env (OPENAI_BASE_URL / OPENAI_MODEL
+ * / OPENAI_API_KEY) — swapping providers needs no code change.
+ */
+export async function translateArticle(
+  env: Env,
+  title: string,
+  bodyHtml: string
+): Promise<TranslatedArticle> {
+  const user =
+    `Translate this article to English.\n\n` +
+    `TITLE (Russian):\n${title}\n\n` +
+    `BODY_HTML (Russian):\n${bodyHtml}`;
+  const parsed = await callLlmJson(env, SYSTEM_PROMPT, user);
+  if (!parsed.title || !parsed.body_html) throw new Error("LLM JSON missing title/body_html");
+  return {
+    title: parsed.title,
+    body_html: parsed.body_html,
+    excerpt: (parsed.excerpt ?? "").slice(0, 300),
+    meta_description: (parsed.meta_description ?? parsed.excerpt ?? "").slice(0, 200),
+  };
+}
 
+/** Translate the already-English article into a target locale (e.g. "de"). */
+export async function translateToLocale(
+  env: Env,
+  locale: string,
+  en: TranslatedArticle
+): Promise<TranslatedArticle> {
+  const langName = LOCALE_LANG[locale] ?? locale;
+  const system =
+    `You are a professional technical translator. Translate the developer article from English into ${langName}, ` +
+    `written naturally for a ${langName}-speaking software audience.\n\n` +
+    `STRICT RULES:\n` +
+    `- Preserve ALL HTML tags, structure, and attributes EXACTLY.\n` +
+    `- NEVER translate or alter anything inside <code> or <pre> tags.\n` +
+    `- Keep product, library, tool, and brand names as-is.\n` +
+    `- Do not invent content or add commentary.\n\n` +
+    `OUTPUT: Return ONLY a JSON object with keys: "title", "body_html", "excerpt", "meta_description".`;
+  const user =
+    `TITLE (English):\n${en.title}\n\n` +
+    `EXCERPT (English):\n${en.excerpt}\n\n` +
+    `META (English):\n${en.meta_description}\n\n` +
+    `BODY_HTML (English):\n${en.body_html}`;
+  const parsed = await callLlmJson(env, system, user);
+  if (!parsed.title || !parsed.body_html) throw new Error(`LLM ${locale} missing title/body_html`);
   return {
     title: parsed.title,
     body_html: parsed.body_html,

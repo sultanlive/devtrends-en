@@ -4,77 +4,119 @@ import { listLanguages, publishedTagSets } from "../lib/db";
 import { langColor, langLabel } from "../lib/lang";
 import { SECTIONS, tagsMatchSection } from "../lib/sections";
 import SectionIcon from "./SectionIcon.astro";
+import {
+  DEFAULT_LOCALE,
+  LOCALES,
+  LOCALE_NAMES,
+  isLocale,
+  localeHref,
+  sectionTitle,
+  t,
+} from "../lib/i18n";
 
 export interface Props {
   siteName: string;
 }
 const { siteName } = Astro.props;
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 const q = Astro.url.searchParams.get("q") ?? "";
 const brand = siteName.replace(/\s+EN$/i, "");
+
+// Locale-agnostic current path (works whether or not the URL kept its prefix).
+const segs = Astro.url.pathname.split("/").filter(Boolean);
+const path = isLocale(segs[0]) ? "/" + segs.slice(1).join("/") : Astro.url.pathname || "/";
+
 const env = getEnv(Astro.locals);
 const [languages, tagSets] = await Promise.all([
   listLanguages(env.DB),
   publishedTagSets(env.DB),
 ]);
 const sections = SECTIONS.filter((s) => tagSets.some((ts) => tagsMatchSection(ts, s)));
+const homeHref = localeHref(locale, "/");
 ---
 
 <header
   class="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur dark:border-line-dark dark:bg-paper-dark/85"
-  x-data="{ open: false }"
+  x-data="{ open: false, lang: false }"
 >
   <div class="mx-auto flex max-w-[1600px] items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6 lg:px-8">
     <!-- Wordmark -->
-    <a href="/" class="flex shrink-0 items-center gap-2" aria-label="Home">
+    <a href={homeHref} class="flex shrink-0 items-center gap-2" aria-label={t(locale, "home")}>
       <span class="flex h-7 w-7 items-center justify-center rounded-md bg-ink font-mono text-sm font-semibold text-paper dark:bg-ink-dark dark:text-paper-dark">&gt;_</span>
       <span class="font-display text-lg font-bold tracking-tight">
-        {brand}<span class="ml-1 align-top font-mono text-[0.6rem] font-medium text-muted dark:text-muted-dark">EN</span>
+        {brand}<span class="ml-1 align-top font-mono text-[0.6rem] font-medium uppercase text-muted dark:text-muted-dark">{locale}</span>
       </span>
     </a>
 
     <!-- Search (functional, no JS) -->
-    <form action="/" method="get" role="search" class="ml-auto hidden max-w-md flex-1 sm:flex">
+    <form action={homeHref} method="get" role="search" class="ml-auto hidden max-w-md flex-1 sm:flex">
       <div class="relative w-full">
         <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted dark:text-muted-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
         <input
           type="search"
           name="q"
           value={q}
-          placeholder="Search projects…"
+          placeholder={t(locale, "search_placeholder")}
           class="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 font-mono text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink dark:border-line-dark dark:bg-surface-dark dark:text-ink-dark dark:placeholder:text-muted-dark dark:focus:border-ink-dark dark:focus:ring-ink-dark"
         />
       </div>
     </form>
 
+    <!-- Language switcher (desktop) -->
+    <div class="relative ml-auto hidden sm:block" @click.outside="lang = false">
+      <button type="button" @click="lang = !lang" :aria-expanded="lang" aria-label={t(locale, "language_label")} class="flex items-center gap-1.5 rounded-lg p-2 text-muted hover:bg-line hover:text-ink dark:text-muted-dark dark:hover:bg-line-dark dark:hover:text-ink-dark">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="2"/><path stroke-width="2" d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+        <span class="font-mono text-xs uppercase">{locale}</span>
+      </button>
+      <div x-show="lang" x-cloak x-transition class="absolute right-0 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-lg dark:border-line-dark dark:bg-surface-dark">
+        {LOCALES.map((loc) => (
+          <a
+            href={localeHref(loc, path)}
+            hreflang={loc}
+            class:list={[
+              "block px-3 py-1.5 text-sm",
+              loc === locale ? "bg-line font-semibold dark:bg-line-dark" : "hover:bg-line dark:hover:bg-line-dark",
+            ]}
+          >
+            <span class="font-mono text-xs uppercase text-muted dark:text-muted-dark">{loc}</span>
+            <span class="ml-2">{LOCALE_NAMES[loc]}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+
     <!-- Theme toggle -->
-    <button
-      type="button"
-      onclick="toggleTheme()"
-      aria-label="Toggle dark mode"
-      class="ml-auto shrink-0 rounded-lg p-2 text-muted hover:bg-line hover:text-ink sm:ml-0 dark:text-muted-dark dark:hover:bg-line-dark dark:hover:text-ink-dark"
-    >
+    <button type="button" onclick="toggleTheme()" aria-label="Toggle dark mode" class="shrink-0 rounded-lg p-2 text-muted hover:bg-line hover:text-ink dark:text-muted-dark dark:hover:bg-line-dark dark:hover:text-ink-dark">
       <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
       <svg class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
     </button>
 
     <!-- Mobile menu toggle -->
-    <button type="button" @click="open = !open" :aria-expanded="open" aria-label="Toggle menu" class="shrink-0 rounded-lg p-2 text-muted hover:bg-line sm:hidden dark:text-muted-dark dark:hover:bg-line-dark">
+    <button type="button" @click="open = !open" :aria-expanded="open" aria-label="Toggle menu" class="ml-auto shrink-0 rounded-lg p-2 text-muted hover:bg-line sm:hidden dark:text-muted-dark dark:hover:bg-line-dark">
       <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
   </div>
 
-  <!-- Mobile drawer: search + language nav -->
+  <!-- Mobile drawer: search + language switcher + nav -->
   <div x-show="open" x-cloak x-transition class="border-t border-line px-4 pb-4 sm:hidden dark:border-line-dark">
-    <form action="/" method="get" role="search" class="mt-3">
-      <input type="search" name="q" value={q} placeholder="Search projects…" class="w-full rounded-lg border border-line bg-surface px-3 py-2 font-mono text-sm dark:border-line-dark dark:bg-surface-dark" />
+    <form action={homeHref} method="get" role="search" class="mt-3">
+      <input type="search" name="q" value={q} placeholder={t(locale, "search_placeholder")} class="w-full rounded-lg border border-line bg-surface px-3 py-2 font-mono text-sm dark:border-line-dark dark:bg-surface-dark" />
     </form>
-    <a href="/" class="mt-2 block py-2 text-sm font-medium">Home</a>
+
+    <p class="eyebrow mt-3 mb-1 text-muted dark:text-muted-dark">{t(locale, "language_label")}</p>
+    <div class="flex flex-wrap gap-2">
+      {LOCALES.map((loc) => (
+        <a href={localeHref(loc, path)} hreflang={loc} class:list={["rounded-full border px-3 py-1 text-xs", loc === locale ? "border-ink font-semibold dark:border-ink-dark" : "border-line dark:border-line-dark"]}>{LOCALE_NAMES[loc]}</a>
+      ))}
+    </div>
+
+    <a href={homeHref} class="mt-3 block py-2 text-sm font-medium">{t(locale, "home")}</a>
     {languages.length > 0 && (
       <>
-        <p class="eyebrow mt-3 mb-1 text-muted dark:text-muted-dark">Languages</p>
+        <p class="eyebrow mt-2 mb-1 text-muted dark:text-muted-dark">{t(locale, "languages")}</p>
         <div class="max-h-56 overflow-y-auto">
           {languages.map((l) => (
-            <a href={`/${l.language}`} class="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm">
+            <a href={localeHref(locale, `/${l.language}`)} class="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm">
               <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${langColor(l.language)}`}></span>
               <span class="truncate font-medium">{langLabel(l.language)}</span>
               <span class="ml-auto font-mono text-xs text-muted dark:text-muted-dark">{l.n}</span>
@@ -85,12 +127,12 @@ const sections = SECTIONS.filter((s) => tagSets.some((ts) => tagsMatchSection(ts
     )}
     {sections.length > 0 && (
       <>
-        <p class="eyebrow mt-3 mb-1 text-muted dark:text-muted-dark">Sections</p>
+        <p class="eyebrow mt-3 mb-1 text-muted dark:text-muted-dark">{t(locale, "sections")}</p>
         <div>
           {sections.map((s) => (
-            <a href={`/sections/${s.slug}`} class="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm">
+            <a href={localeHref(locale, `/sections/${s.slug}`)} class="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm">
               <SectionIcon name={s.icon} color={s.color} class="h-4 w-4 shrink-0" />
-              <span class="truncate font-medium">{s.title}</span>
+              <span class="truncate font-medium">{sectionTitle(locale, s.slug, s.title)}</span>
             </a>
           ))}
         </div>
@@ -98,3 +140,7 @@ const sections = SECTIONS.filter((s) => tagSets.some((ts) => tagsMatchSection(ts
     )}
   </div>
 </header>
+
+<style is:global>
+  [x-cloak] { display: none !important; }
+</style>

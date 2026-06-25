@@ -1,10 +1,12 @@
 import type { Env } from "./types";
 import { discover } from "./sitemap";
-import { claimPending, markPublished, markFailed, logRun } from "./db";
+import { claimPending, markPublished, markFailed, logRun, saveTranslation } from "./db";
 import { scrapeArticle } from "./scrape";
 import { processMedia } from "./media";
-import { translateArticle } from "./translate";
+import { translateArticle, translateToLocale } from "./translate";
 import { purgeForArticle } from "./cache";
+
+const DEFAULT_TARGET_LOCALES = "es,de,ja,fr,pt,it,nl,pl";
 
 /** Discover new sitemap entries, then translate & publish a small batch. */
 async function runPipeline(env: Env): Promise<{ discovered: number; processed: number; failed: number }> {
@@ -27,6 +29,21 @@ async function runPipeline(env: Env): Promise<{ discovered: number; processed: n
       const media = await processMedia(env, scraped.bodyHtml, slug);
       const translated = await translateArticle(env, scraped.title, media.bodyHtml);
       await markPublished(env, row, { ...scraped, bodyHtml: media.bodyHtml }, translated, media.ogImage);
+
+      // Translate the English version into each target locale (best-effort).
+      const locales = (env.TARGET_LOCALES ?? DEFAULT_TARGET_LOCALES)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const loc of locales) {
+        try {
+          const localized = await translateToLocale(env, loc, translated);
+          await saveTranslation(env, row.id, loc, localized);
+        } catch (e) {
+          console.log(`locale ${loc} failed for ${row.slug}: ${String(e).slice(0, 120)}`);
+        }
+      }
+
       await purgeForArticle(env, row.language, row.slug);
       processed++;
     } catch (e) {

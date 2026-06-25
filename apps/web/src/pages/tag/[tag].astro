@@ -2,11 +2,13 @@
 import Base from "../../layouts/Base.astro";
 import ArticleCard from "../../components/ArticleCard.astro";
 import Sidebar from "../../components/Sidebar.astro";
-import { getEnv, canonical, setCacheHeaders } from "../../lib/site";
+import { getEnv, setCacheHeaders } from "../../lib/site";
 import { listByTag, countByTag, listLanguages } from "../../lib/db";
+import { DEFAULT_LOCALE, localeHref, t } from "../../lib/i18n";
 
 const { tag } = Astro.params as { tag: string };
 const env = getEnv(Astro.locals);
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 
 const [total, languages] = await Promise.all([
   countByTag(env.DB, tag),
@@ -20,20 +22,15 @@ setCacheHeaders(Astro, 300);
 const perPage = 24;
 const page = Math.max(1, Number(Astro.url.searchParams.get("page") ?? "1") || 1);
 const offset = (page - 1) * perPage;
-const articles = await listByTag(env.DB, tag, { limit: perPage, offset });
+const articles = await listByTag(env.DB, tag, { limit: perPage, offset, locale });
 const totalPages = Math.max(1, Math.ceil(total / perPage));
 
-const basePath = `/tag/${encodeURIComponent(tag)}`;
-const description = `Curated open-source projects and developer tools tagged “${tag}” (${total}).`;
+const path = `/tag/${encodeURIComponent(tag)}`;
+const basePath = localeHref(locale, path);
+const description = `#${tag} — ${total} ${t(locale, "projects_word")}.`;
 ---
 
-<Base
-  title={`#${tag} | ${env.SITE_NAME}`}
-  description={description}
-  canonicalUrl={canonical(env.SITE_URL, page > 1 ? `${basePath}?page=${page}` : basePath)}
-  siteName={env.SITE_NAME}
-  ogType="website"
->
+<Base title={`#${tag} | ${env.SITE_NAME}`} description={description} path={path} ogType="website">
   <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <div class="hidden lg:block">
       <Sidebar languages={languages} />
@@ -41,12 +38,12 @@ const description = `Curated open-source projects and developer tools tagged “
 
     <div>
       <nav class="mb-4 font-mono text-xs text-muted dark:text-muted-dark" aria-label="Breadcrumb">
-        <a href="/" class="hover:underline">~</a> <span class="mx-1">/</span> <span>tag</span> <span class="mx-1">/</span> <span>{tag}</span>
+        <a href={localeHref(locale, "/")} class="hover:underline">~</a> <span class="mx-1">/</span> <span>tag</span> <span class="mx-1">/</span> <span>{tag}</span>
       </nav>
 
       <header class="mb-8 flex flex-wrap items-baseline gap-x-3 gap-y-2 border-b border-line pb-6 dark:border-line-dark">
         <h1 class="font-display text-3xl font-bold tracking-tight">#{tag}</h1>
-        <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} projects</span>
+        <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} {t(locale, "projects_word")}</span>
       </header>
 
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -56,11 +53,11 @@ const description = `Curated open-source projects and developer tools tagged “
       {totalPages > 1 && (
         <nav class="mt-10 flex items-center justify-between" aria-label="Pagination">
           {page > 1 ? (
-            <a href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} rel="prev" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← Newer</a>
+            <a href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} rel="prev" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← {t(locale, "newer")}</a>
           ) : <span></span>}
           <span class="font-mono text-xs text-muted dark:text-muted-dark">{page} / {totalPages}</span>
           {page < totalPages ? (
-            <a href={`${basePath}?page=${page + 1}`} rel="next" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">Older →</a>
+            <a href={`${basePath}?page=${page + 1}`} rel="next" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">{t(locale, "older")} →</a>
           ) : <span></span>}
         </nav>
       )}

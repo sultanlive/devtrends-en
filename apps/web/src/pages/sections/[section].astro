@@ -2,13 +2,15 @@
 import Base from "../../layouts/Base.astro";
 import ArticleCard from "../../components/ArticleCard.astro";
 import Sidebar from "../../components/Sidebar.astro";
-import { getEnv, canonical, setCacheHeaders } from "../../lib/site";
+import SectionIcon from "../../components/SectionIcon.astro";
+import { getEnv, setCacheHeaders } from "../../lib/site";
 import { listBySection, countBySection, listLanguages } from "../../lib/db";
 import { getSection } from "../../lib/sections";
-import SectionIcon from "../../components/SectionIcon.astro";
+import { DEFAULT_LOCALE, localeHref, sectionTitle, t } from "../../lib/i18n";
 
 const { section: slug } = Astro.params as { section: string };
 const env = getEnv(Astro.locals);
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 
 const section = getSection(slug);
 if (!section) {
@@ -27,18 +29,15 @@ setCacheHeaders(Astro, 300);
 const perPage = 24;
 const page = Math.max(1, Number(Astro.url.searchParams.get("page") ?? "1") || 1);
 const offset = (page - 1) * perPage;
-const articles = await listBySection(env.DB, section.tags, { limit: perPage, offset });
+const articles = await listBySection(env.DB, section.tags, { limit: perPage, offset, locale });
 const totalPages = Math.max(1, Math.ceil(total / perPage));
-const basePath = `/sections/${section.slug}`;
+
+const title = sectionTitle(locale, section.slug, section.title);
+const path = `/sections/${section.slug}`;
+const basePath = localeHref(locale, path);
 ---
 
-<Base
-  title={`${section.title} | ${env.SITE_NAME}`}
-  description={section.description}
-  canonicalUrl={canonical(env.SITE_URL, page > 1 ? `${basePath}?page=${page}` : basePath)}
-  siteName={env.SITE_NAME}
-  ogType="website"
->
+<Base title={`${title} | ${env.SITE_NAME}`} description={section.description} path={path} ogType="website">
   <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <div class="hidden lg:block">
       <Sidebar languages={languages} activeSection={section.slug} />
@@ -46,14 +45,14 @@ const basePath = `/sections/${section.slug}`;
 
     <div>
       <nav class="mb-4 font-mono text-xs text-muted dark:text-muted-dark" aria-label="Breadcrumb">
-        <a href="/" class="hover:underline">~</a> <span class="mx-1">/</span> <span>sections</span> <span class="mx-1">/</span> <span>{section.slug}</span>
+        <a href={localeHref(locale, "/")} class="hover:underline">~</a> <span class="mx-1">/</span> <span>sections</span> <span class="mx-1">/</span> <span>{section.slug}</span>
       </nav>
 
       <header class="mb-8 border-b border-line pb-6 dark:border-line-dark">
         <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
           <SectionIcon name={section.icon} color={section.color} class="h-7 w-7 shrink-0" />
-          <h1 class="font-display text-3xl font-bold tracking-tight">{section.title}</h1>
-          <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} projects</span>
+          <h1 class="font-display text-3xl font-bold tracking-tight">{title}</h1>
+          <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} {t(locale, "projects_word")}</span>
         </div>
         <p class="mt-3 max-w-2xl text-muted dark:text-muted-dark">{section.description}</p>
       </header>
@@ -65,11 +64,11 @@ const basePath = `/sections/${section.slug}`;
       {totalPages > 1 && (
         <nav class="mt-10 flex items-center justify-between" aria-label="Pagination">
           {page > 1 ? (
-            <a href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} rel="prev" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← Newer</a>
+            <a href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} rel="prev" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← {t(locale, "newer")}</a>
           ) : <span></span>}
           <span class="font-mono text-xs text-muted dark:text-muted-dark">{page} / {totalPages}</span>
           {page < totalPages ? (
-            <a href={`${basePath}?page=${page + 1}`} rel="next" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">Older →</a>
+            <a href={`${basePath}?page=${page + 1}`} rel="next" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">{t(locale, "older")} →</a>
           ) : <span></span>}
         </nav>
       )}

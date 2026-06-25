@@ -22,11 +22,15 @@ export function articlePath(language: string, slug: string): string {
   return `/${language}/${slug}`;
 }
 
-export function formatDate(value: string | null): string {
+export function formatDate(value: string | null, locale = "en"): string {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  try {
+    return d.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
+  } catch {
+    return d.toLocaleDateString("en", { year: "numeric", month: "short", day: "numeric" });
+  }
 }
 
 /** Standard edge-cache headers for SSR responses (Variant 1). */

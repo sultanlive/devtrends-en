@@ -1,14 +1,16 @@
 ---
 import Base from "../../layouts/Base.astro";
 import Sidebar from "../../components/Sidebar.astro";
-import { getEnv, canonical, articlePath, formatDate, setCacheHeaders } from "../../lib/site";
+import { getEnv, articlePath, formatDate, setCacheHeaders, canonical } from "../../lib/site";
 import { getArticle, parseTags, listLanguages, relatedArticles } from "../../lib/db";
 import { langColor, langLabel } from "../../lib/lang";
+import { DEFAULT_LOCALE, localeHref, t } from "../../lib/i18n";
 
 const { lang, slug } = Astro.params as { lang: string; slug: string };
 const env = getEnv(Astro.locals);
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 
-const article = await getArticle(env.DB, lang, slug);
+const article = await getArticle(env.DB, lang, slug, locale);
 if (!article) {
   return new Response("Not Found", { status: 404 });
 }
@@ -17,21 +19,23 @@ setCacheHeaders(Astro, 600);
 const tags = parseTags(article.tags);
 const [languages, related] = await Promise.all([
   listLanguages(env.DB),
-  relatedArticles(env.DB, { id: article.id, language: article.language, tags }, 6),
+  relatedArticles(env.DB, { id: article.id, language: article.language, tags }, 6, locale),
 ]);
 
-const url = canonical(env.SITE_URL, articlePath(article.language, article.slug));
-const date = formatDate(article.source_lastmod ?? article.updated_at);
+const path = articlePath(article.language, article.slug);
+const url = canonical(env.SITE_URL, localeHref(locale, path));
+const date = formatDate(article.source_lastmod ?? article.updated_at, locale);
 const description = article.meta_description ?? article.excerpt_en ?? "";
 const color = langColor(article.language);
 const label = langLabel(article.language);
+const catHref = localeHref(locale, `/${article.language}`);
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "TechArticle",
   headline: article.title_en,
   description,
-  inLanguage: "en",
+  inLanguage: locale,
   mainEntityOfPage: { "@type": "WebPage", "@id": url },
   ...(article.og_image ? { image: article.og_image } : {}),
   ...(article.source_date ? { datePublished: article.source_date } : {}),
@@ -40,34 +44,24 @@ const jsonLd = {
 };
 ---
 
-<Base
-  title={`${article.title_en} | ${env.SITE_NAME}`}
-  description={description}
-  canonicalUrl={url}
-  ogImage={article.og_image}
-  ogType="article"
-  siteName={env.SITE_NAME}
-  jsonLd={jsonLd}
->
+<Base title={`${article.title_en} | ${env.SITE_NAME}`} description={description} path={path} ogImage={article.og_image} ogType="article" jsonLd={jsonLd}>
   <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] xl:grid-cols-[14rem_minmax(0,1fr)_19rem]">
-    <!-- Left: language navigation -->
     <div class="hidden lg:block">
       <Sidebar languages={languages} active={article.language} />
     </div>
 
-    <!-- Center: the article -->
     <div class="min-w-0">
       <article class="mx-auto max-w-3xl">
         <nav class="mb-6 font-mono text-xs text-muted dark:text-muted-dark" aria-label="Breadcrumb">
-          <a href="/" class="hover:underline">~</a>
+          <a href={localeHref(locale, "/")} class="hover:underline">~</a>
           <span class="mx-1">/</span>
-          <a href={`/${article.language}`} class="hover:underline">{article.language}</a>
+          <a href={catHref} class="hover:underline">{article.language}</a>
           <span class="mx-1">/</span>
           <span class="text-ink dark:text-ink-dark">{article.slug}</span>
         </nav>
 
         <header class="mb-8 border-b border-line pb-6 dark:border-line-dark">
-          <a href={`/${article.language}`} class="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-muted hover:text-ink dark:text-muted-dark dark:hover:text-ink-dark">
+          <a href={catHref} class="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-muted hover:text-ink dark:text-muted-dark dark:hover:text-ink-dark">
             <span class="h-2.5 w-2.5 rounded-full" style={`background:${color}`}></span>
             {label}
           </a>
@@ -76,7 +70,7 @@ const jsonLd = {
             {article.github_stars != null && (
               <span class="inline-flex items-center gap-1.5">
                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.401 8.168L12 18.896l-7.335 3.866 1.401-8.168L.132 9.21l8.2-1.192z"/></svg>
-                {article.github_stars.toLocaleString("en-US")} stars
+                {article.github_stars.toLocaleString(locale)} {t(locale, "stars")}
               </span>
             )}
             {date && <time>{date}</time>}
@@ -87,29 +81,25 @@ const jsonLd = {
 
         {tags.length > 0 && (
           <footer class="mt-10 border-t border-line pt-6 dark:border-line-dark">
-            <p class="eyebrow mb-3 text-muted dark:text-muted-dark">Tags</p>
+            <p class="eyebrow mb-3 text-muted dark:text-muted-dark">{t(locale, "tags")}</p>
             <div class="flex flex-wrap gap-2">
-              {tags.map((t) => (
-                <a
-                  href={`/tag/${encodeURIComponent(t)}`}
-                  class="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted transition hover:border-ink hover:text-ink dark:border-line-dark dark:text-muted-dark dark:hover:border-ink-dark dark:hover:text-ink-dark"
-                >#{t}</a>
+              {tags.map((tag) => (
+                <a href={localeHref(locale, `/tag/${encodeURIComponent(tag)}`)} class="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted transition hover:border-ink hover:text-ink dark:border-line-dark dark:text-muted-dark dark:hover:border-ink-dark dark:hover:text-ink-dark">#{tag}</a>
               ))}
             </div>
           </footer>
         )}
 
-        <!-- Related (mobile/tablet: shown inline below the article) -->
         {related.length > 0 && (
           <section class="mt-12 border-t border-line pt-6 xl:hidden dark:border-line-dark">
-            <p class="eyebrow mb-4 text-muted dark:text-muted-dark">Related projects</p>
+            <p class="eyebrow mb-4 text-muted dark:text-muted-dark">{t(locale, "related")}</p>
             <div class="grid gap-4 sm:grid-cols-2">
               {related.map((r) => (
-                <a href={articlePath(r.language, r.slug)} class="group rounded-lg border border-line bg-surface p-4 transition hover:border-transparent hover:shadow-[0_8px_24px_-12px_rgba(14,17,22,0.22)] dark:border-line-dark dark:bg-surface-dark">
+                <a href={localeHref(locale, articlePath(r.language, r.slug))} class="group rounded-lg border border-line bg-surface p-4 transition hover:border-transparent hover:shadow-[0_8px_24px_-12px_rgba(14,17,22,0.22)] dark:border-line-dark dark:bg-surface-dark">
                   <h3 class="font-display text-sm font-semibold leading-snug group-hover:underline">{r.title_en}</h3>
                   <div class="mt-2 flex items-center gap-3 font-mono text-xs text-muted dark:text-muted-dark">
                     <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style={`background:${langColor(r.language)}`}></span>{langLabel(r.language)}</span>
-                    {r.github_stars != null && <span>★ {r.github_stars.toLocaleString("en-US")}</span>}
+                    {r.github_stars != null && <span>★ {r.github_stars.toLocaleString(locale)}</span>}
                   </div>
                 </a>
               ))}
@@ -119,14 +109,13 @@ const jsonLd = {
       </article>
     </div>
 
-    <!-- Right: recommended / related projects -->
     {related.length > 0 && (
       <aside class="hidden xl:block xl:sticky xl:top-20 xl:self-start">
-        <p class="eyebrow mb-4 text-muted dark:text-muted-dark">Related projects</p>
+        <p class="eyebrow mb-4 text-muted dark:text-muted-dark">{t(locale, "related")}</p>
         <div class="rounded-xl border border-line bg-surface dark:border-line-dark dark:bg-surface-dark">
           {related.map((r, i) => (
             <a
-              href={articlePath(r.language, r.slug)}
+              href={localeHref(locale, articlePath(r.language, r.slug))}
               class:list={[
                 "group block p-4 transition hover:bg-line/40 dark:hover:bg-line-dark/40",
                 i > 0 && "border-t border-line dark:border-line-dark",
@@ -135,7 +124,7 @@ const jsonLd = {
               <h3 class="font-display text-sm font-semibold leading-snug group-hover:underline">{r.title_en}</h3>
               <div class="mt-2 flex items-center gap-3 font-mono text-xs text-muted dark:text-muted-dark">
                 <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style={`background:${langColor(r.language)}`}></span>{langLabel(r.language)}</span>
-                {r.github_stars != null && <span>★ {r.github_stars.toLocaleString("en-US")}</span>}
+                {r.github_stars != null && <span>★ {r.github_stars.toLocaleString(locale)}</span>}
               </div>
             </a>
           ))}

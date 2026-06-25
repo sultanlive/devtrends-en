@@ -1,12 +1,16 @@
 ---
 import type { Section } from "../lib/sections";
 import SectionIcon from "./SectionIcon.astro";
+import { localeHref, sectionTitle, DEFAULT_LOCALE } from "../lib/i18n";
 
 export interface Props {
   section: Section;
   count: number;
 }
 const { section, count } = Astro.props;
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
+const title = sectionTitle(locale, section.slug, section.title);
+const href = localeHref(locale, `/sections/${section.slug}`);
 ---
 
 <article class="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition duration-200 hover:-translate-y-0.5 hover:border-transparent hover:shadow-[0_10px_30px_-12px_rgba(14,17,22,0.22)] dark:border-line-dark dark:bg-surface-dark dark:hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
@@ -15,7 +19,7 @@ const { section, count } = Astro.props;
     <div class="flex items-center justify-between gap-2">
       <span class="inline-flex items-center gap-2.5 font-display text-lg font-semibold tracking-tight">
         <SectionIcon name={section.icon} color={section.color} class="h-5 w-5 shrink-0" />
-        <a href={`/sections/${section.slug}`} class="after:absolute after:inset-0 group-hover:underline decoration-2 underline-offset-2">{section.title}</a>
+        <a href={href} class="after:absolute after:inset-0 group-hover:underline decoration-2 underline-offset-2">{title}</a>
       </span>
       <span class="font-mono text-xs text-muted dark:text-muted-dark">{count}</span>
     </div>

@@ -3,12 +3,14 @@ import Base from "../layouts/Base.astro";
 import ArticleCard from "../components/ArticleCard.astro";
 import Sidebar from "../components/Sidebar.astro";
 import SectionCard from "../components/SectionCard.astro";
-import { getEnv, canonical, setCacheHeaders } from "../lib/site";
+import { getEnv, setCacheHeaders } from "../lib/site";
 import { langColor, langLabel } from "../lib/lang";
 import { listArticles, countArticles, listLanguages, publishedTagSets } from "../lib/db";
 import { SECTIONS, tagsMatchSection } from "../lib/sections";
+import { DEFAULT_LOCALE, localeHref, t } from "../lib/i18n";
 
 const env = getEnv(Astro.locals);
+const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 setCacheHeaders(Astro, 300);
 
 const q = (Astro.url.searchParams.get("q") ?? "").trim();
@@ -17,16 +19,15 @@ const page = Math.max(1, Number(Astro.url.searchParams.get("page") ?? "1") || 1)
 const offset = (page - 1) * perPage;
 
 const [articles, total, languages] = await Promise.all([
-  listArticles(env.DB, { limit: perPage, offset, q: q || undefined }),
+  listArticles(env.DB, { limit: perPage, offset, q: q || undefined, locale }),
   countArticles(env.DB, undefined, q || undefined),
   listLanguages(env.DB),
 ]);
 const totalAll = q ? await countArticles(env.DB) : total;
 const totalPages = Math.max(1, Math.ceil(total / perPage));
 const showHero = !q && page === 1;
-const description = `Curated open-source developer tools and projects, translated to English. ${totalAll} projects across ${languages.length} languages.`;
+const description = t(locale, "hero_blurb");
 
-// Section cards (only on the landing view). One query; counted in JS.
 let sectionCards: { section: (typeof SECTIONS)[number]; count: number }[] = [];
 if (showHero) {
   const tagSets = await publishedTagSets(env.DB);
@@ -35,30 +36,31 @@ if (showHero) {
     count: tagSets.filter((ts) => tagsMatchSection(ts, section)).length,
   })).filter((x) => x.count > 0);
 }
+
+const homeHref = localeHref(locale, "/");
 ---
 
 <Base
-  title={q ? `Search: ${q} | ${env.SITE_NAME}` : env.SITE_NAME}
+  title={q ? `${t(locale, "results_for")} ${q} | ${env.SITE_NAME}` : env.SITE_NAME}
   description={description}
-  canonicalUrl={canonical(env.SITE_URL, page > 1 ? `/?page=${page}` : "/")}
-  siteName={env.SITE_NAME}
+  path="/"
   ogType="website"
 >
   {showHero && (
     <section class="mb-10 border-b border-line pb-10 dark:border-line-dark">
-      <p class="eyebrow text-muted dark:text-muted-dark">Open source · translated</p>
+      <p class="eyebrow text-muted dark:text-muted-dark">{t(locale, "hero_eyebrow")}</p>
       <h1 class="mt-3 max-w-3xl font-display text-3xl font-bold leading-[1.08] tracking-tight sm:text-4xl xl:text-5xl">
-        Curated developer tools, in plain English.
+        {t(locale, "hero_title")}
       </h1>
       <p class="mt-4 font-mono text-sm text-muted dark:text-muted-dark">
-        {totalAll.toLocaleString("en-US")} projects · {languages.length} languages · refreshed continuously
+        {totalAll.toLocaleString(locale)} {t(locale, "projects_word")} · {languages.length} {t(locale, "languages_word")} · {t(locale, "refreshed")}
       </p>
     </section>
   )}
 
   {showHero && sectionCards.length > 0 && (
     <section class="mb-12">
-      <h2 class="eyebrow mb-4 text-muted dark:text-muted-dark">Browse by section</h2>
+      <h2 class="eyebrow mb-4 text-muted dark:text-muted-dark">{t(locale, "browse_by_section")}</h2>
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {sectionCards.map(({ section, count }) => <SectionCard section={section} count={count} />)}
       </div>
@@ -74,7 +76,7 @@ if (showHero) {
       <!-- Mobile language chips (wrap to multiple rows; no horizontal scroll) -->
       <div class="mb-6 flex flex-wrap gap-2 lg:hidden">
         {languages.map((l) => (
-          <a href={`/${l.language}`} class="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium dark:border-line-dark dark:bg-surface-dark">
+          <a href={localeHref(locale, `/${l.language}`)} class="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium dark:border-line-dark dark:bg-surface-dark">
             <span class="h-2 w-2 rounded-full" style={`background:${langColor(l.language)}`}></span>
             {langLabel(l.language)} <span class="font-mono text-muted dark:text-muted-dark">{l.n}</span>
           </a>
@@ -82,15 +84,15 @@ if (showHero) {
       </div>
 
       <div class="mb-5 flex items-baseline justify-between gap-3">
-        <h2 class="eyebrow text-muted dark:text-muted-dark">{q ? `Results for “${q}”` : "Latest"}</h2>
+        <h2 class="eyebrow text-muted dark:text-muted-dark">{q ? `${t(locale, "results_for")} “${q}”` : t(locale, "latest")}</h2>
         {q && (
-          <a href="/" class="font-mono text-xs text-muted underline-offset-2 hover:underline dark:text-muted-dark">clear ✕</a>
+          <a href={homeHref} class="font-mono text-xs text-muted underline-offset-2 hover:underline dark:text-muted-dark">{t(locale, "clear")} ✕</a>
         )}
       </div>
 
       {articles.length === 0 ? (
         <p class="rounded-xl border border-dashed border-line p-10 text-center text-muted dark:border-line-dark dark:text-muted-dark">
-          {q ? `No projects match “${q}”.` : "No projects published yet."}
+          {t(locale, "no_projects")}
         </p>
       ) : (
         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -101,11 +103,11 @@ if (showHero) {
       {totalPages > 1 && (
         <nav class="mt-10 flex items-center justify-between" aria-label="Pagination">
           {page > 1 ? (
-            <a href={page - 1 === 1 ? "/" : `/?page=${page - 1}`} rel="prev" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← Newer</a>
+            <a href={page - 1 === 1 ? homeHref : `${homeHref}?page=${page - 1}`} rel="prev" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← {t(locale, "newer")}</a>
           ) : <span></span>}
           <span class="font-mono text-xs text-muted dark:text-muted-dark">{page} / {totalPages}</span>
           {page < totalPages ? (
-            <a href={`/?page=${page + 1}`} rel="next" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">Older →</a>
+            <a href={`${homeHref}?page=${page + 1}`} rel="next" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">{t(locale, "older")} →</a>
           ) : <span></span>}
         </nav>
       )}

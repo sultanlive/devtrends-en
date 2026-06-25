@@ -12,6 +12,8 @@ export interface Env {
   R2_PUBLIC_BASE: string;
   SITE_URL: string;
   CF_ZONE_ID?: string;
+  /** Comma-separated target locales to translate into (besides English). */
+  TARGET_LOCALES?: string;
 
   // secrets (wrangler secret put / .dev.vars)
   OPENAI_API_KEY: string;
