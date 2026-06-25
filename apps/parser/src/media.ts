@@ -24,6 +24,21 @@ function extFromUrl(url: string): string | null {
   return m ? m[1].toLowerCase() : null;
 }
 
+/** Unwrap devtrends' /image-proxy?url=<encoded> wrapper to the real image URL. */
+function unwrapProxy(absUrl: string, sourceBase: string): string {
+  try {
+    const u = new URL(absUrl);
+    const base = new URL(sourceBase);
+    if (u.host === base.host && u.pathname.replace(/\/+$/, "") === "/image-proxy") {
+      const real = u.searchParams.get("url"); // searchParams decodes the value
+      if (real) return real;
+    }
+  } catch {
+    /* fall through */
+  }
+  return absUrl;
+}
+
 /**
  * Download each content image, store it in R2, and rewrite <img src> to the R2
  * public URL. Ad/QR images are dropped. Returns the rewritten body HTML and the
@@ -56,9 +71,13 @@ export async function processMedia(
     try {
       absUrl = new URL(rawSrc, env.SOURCE_BASE).toString();
     } catch {
+      img.closest("a")?.remove();
       img.remove();
       continue;
     }
+
+    // Unwrap devtrends' image proxy to the real underlying file.
+    absUrl = unwrapProxy(absUrl, env.SOURCE_BASE);
 
     // Drop ads / QR.
     if (AD_IMG_PATTERNS.some((p) => absUrl.includes(p))) {
@@ -67,12 +86,17 @@ export async function processMedia(
       continue;
     }
 
-    if (processed >= MAX_IMAGES) continue; // keep remaining as-is (rare)
+    if (processed >= MAX_IMAGES) {
+      img.setAttribute("src", absUrl); // beyond budget: point at the real URL
+      continue;
+    }
 
     try {
       const resp = await fetch(absUrl, { headers: { "User-Agent": env.USER_AGENT } });
-      if (!resp.ok) throw new Error(`img ${resp.status}`);
       const contentType = resp.headers.get("content-type")?.split(";")[0].trim() ?? "";
+      if (!resp.ok || !contentType.startsWith("image/")) {
+        throw new Error(`img ${resp.status} ${contentType}`);
+      }
       const ext = EXT_BY_TYPE[contentType] ?? extFromUrl(absUrl) ?? "img";
       const hash = (await sha1Hex(absUrl)).slice(0, 16);
       const key = `images/${slug}/${hash}.${ext}`;
@@ -89,8 +113,10 @@ export async function processMedia(
       processed++;
       if (!ogImage) ogImage = newUrl;
     } catch {
-      // Keep the absolute source URL as a graceful fallback (not broken).
-      img.setAttribute("src", absUrl);
+      // Missing/broken image (e.g. a dead proxy target) — drop it instead of
+      // leaving a broken <img> in the article.
+      img.closest("a")?.remove();
+      img.remove();
     }
   }
 
