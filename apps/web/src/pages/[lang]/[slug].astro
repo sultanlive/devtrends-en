@@ -5,6 +5,7 @@ import { getEnv, articlePath, formatDate, setCacheHeaders, canonical, siteUrl } 
 import { getArticle, parseTags, listLanguages, relatedArticles } from "../../lib/db";
 import { langColor, langLabel } from "../../lib/lang";
 import { DEFAULT_LOCALE, localeHref, t } from "../../lib/i18n";
+import { breadcrumbLd } from "../../lib/seo";
 
 const { lang, slug } = Astro.params as { lang: string; slug: string };
 const env = getEnv(Astro.locals);
@@ -23,25 +24,43 @@ const [languages, related] = await Promise.all([
 ]);
 
 const path = articlePath(article.language, article.slug);
-const url = canonical(siteUrl(Astro.locals, Astro.url), localeHref(locale, path));
+const site = siteUrl(Astro.locals, Astro.url);
+const url = canonical(site, localeHref(locale, path));
 const date = formatDate(article.source_lastmod ?? article.updated_at, locale);
 const description = article.meta_description ?? article.excerpt_en ?? "";
 const color = langColor(article.language);
 const label = langLabel(article.language);
 const catHref = localeHref(locale, `/${article.language}`);
 
-const jsonLd = {
+const publisher = {
+  "@type": "Organization",
+  name: env.SITE_NAME,
+  logo: { "@type": "ImageObject", url: `${site}/icon-512.png` },
+};
+
+const articleLd = {
   "@context": "https://schema.org",
   "@type": "TechArticle",
   headline: article.title_en,
   description,
   inLanguage: locale,
   mainEntityOfPage: { "@type": "WebPage", "@id": url },
-  ...(article.og_image ? { image: article.og_image } : {}),
+  author: publisher,
+  publisher,
+  ...(article.og_image ? { image: [article.og_image] } : {}),
   ...(article.source_date ? { datePublished: article.source_date } : {}),
   ...(article.updated_at ? { dateModified: article.updated_at } : {}),
   ...(tags.length ? { keywords: tags.join(", ") } : {}),
 };
+
+const jsonLd = [
+  articleLd,
+  breadcrumbLd([
+    { name: t(locale, "home"), url: canonical(site, localeHref(locale, "/")) },
+    { name: label, url: canonical(site, catHref) },
+    { name: article.title_en, url },
+  ]),
+];
 ---
 
 <Base title={`${article.title_en} | ${env.SITE_NAME}`} description={description} path={path} ogImage={article.og_image} ogType="article" jsonLd={jsonLd}>

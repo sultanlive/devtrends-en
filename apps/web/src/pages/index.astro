@@ -3,11 +3,12 @@ import Base from "../layouts/Base.astro";
 import ArticleCard from "../components/ArticleCard.astro";
 import Sidebar from "../components/Sidebar.astro";
 import SectionCard from "../components/SectionCard.astro";
-import { getEnv, setCacheHeaders } from "../lib/site";
+import { getEnv, setCacheHeaders, siteUrl } from "../lib/site";
 import { langColor, langLabel } from "../lib/lang";
 import { listArticles, countArticles, listLanguages, publishedTagSets } from "../lib/db";
 import { SECTIONS, tagsMatchSection } from "../lib/sections";
 import { DEFAULT_LOCALE, localeHref, t } from "../lib/i18n";
+import { websiteLd, organizationLd } from "../lib/seo";
 
 const env = getEnv(Astro.locals);
 const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
@@ -38,6 +39,11 @@ if (showHero) {
 }
 
 const homeHref = localeHref(locale, "/");
+const site = siteUrl(Astro.locals, Astro.url);
+const jsonLd = [
+  websiteLd(site, env.SITE_NAME),
+  organizationLd(site, env.SITE_NAME, `${site}/icon-512.png`),
+];
 ---
 
 <Base
@@ -45,6 +51,8 @@ const homeHref = localeHref(locale, "/");
   description={description}
   path="/"
   ogType="website"
+  jsonLd={jsonLd}
+  noindex={!!q}
 >
   {showHero && (
     <section class="mb-10 border-b border-line pb-10 dark:border-line-dark">

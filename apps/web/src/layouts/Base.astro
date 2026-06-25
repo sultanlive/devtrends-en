@@ -12,15 +12,18 @@ export interface Props {
   path?: string;
   ogImage?: string | null;
   ogType?: "website" | "article";
-  jsonLd?: Record<string, unknown> | null;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
+  noindex?: boolean;
 }
 
-const { title, description = "", path = "/", ogImage = null, ogType = "website", jsonLd = null } = Astro.props;
+const { title, description = "", path = "/", ogImage = null, ogType = "website", jsonLd = null, noindex = false } = Astro.props;
 
 const env = getEnv(Astro.locals);
 const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 const siteName = env.SITE_NAME;
 const site = siteUrl(Astro.locals, Astro.url);
+const twitterHandle = env.TWITTER_HANDLE;
+const ldItems = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
 const canonicalUrl = canonical(site, localeHref(locale, path));
 const alternates = LOCALES.map((loc) => ({
@@ -36,7 +39,17 @@ const alternates = LOCALES.map((loc) => ({
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
     <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Favicons / app icons -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f5f7" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0e14" />
 
     {/* hreflang alternates for every locale + x-default */}
     {alternates.map((a) => <link rel="alternate" hreflang={a.loc} href={a.href} />)}
@@ -56,8 +69,9 @@ const alternates = LOCALES.map((loc) => ({
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
     {ogImage && <meta name="twitter:image" content={ogImage} />}
+    {twitterHandle && <meta name="twitter:site" content={twitterHandle} />}
 
-    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    {ldItems.map((item) => <script type="application/ld+json" set:html={JSON.stringify(item)} />)}
 
     <!-- Fonts: Space Grotesk (display) + IBM Plex Sans/Mono. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

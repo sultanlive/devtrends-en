@@ -31,3 +31,4 @@ id = "REPLACE_WITH_KV_NAMESPACE_ID"
 SITE_URL = ""
 R2_PUBLIC_BASE = "https://img.example.com"
 SITE_NAME = "DevTrends EN"
+TWITTER_HANDLE = ""            # e.g. "@devtrends" — adds <meta name="twitter:site">; optional

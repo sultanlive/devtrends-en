@@ -2,10 +2,11 @@
 import Base from "../../layouts/Base.astro";
 import ArticleCard from "../../components/ArticleCard.astro";
 import Sidebar from "../../components/Sidebar.astro";
-import { getEnv, setCacheHeaders } from "../../lib/site";
+import { getEnv, setCacheHeaders, siteUrl, canonical } from "../../lib/site";
 import { langColor, langLabel } from "../../lib/lang";
 import { listArticles, countArticles, listLanguages } from "../../lib/db";
 import { DEFAULT_LOCALE, localeHref, t } from "../../lib/i18n";
+import { breadcrumbLd } from "../../lib/seo";
 
 const { lang } = Astro.params as { lang: string };
 const env = getEnv(Astro.locals);
@@ -30,9 +31,14 @@ const label = langLabel(lang);
 const color = langColor(lang);
 const basePath = localeHref(locale, `/${lang}`);
 const description = `${label} — ${total} ${t(locale, "projects_word")}.`;
+const site = siteUrl(Astro.locals, Astro.url);
+const jsonLd = breadcrumbLd([
+  { name: t(locale, "home"), url: canonical(site, localeHref(locale, "/")) },
+  { name: label, url: canonical(site, basePath) },
+]);
 ---
 
-<Base title={`${label} | ${env.SITE_NAME}`} description={description} path={`/${lang}`} ogType="website">
+<Base title={`${label} | ${env.SITE_NAME}`} description={description} path={`/${lang}`} ogType="website" jsonLd={jsonLd}>
   <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <div class="hidden lg:block">
       <Sidebar languages={languages} active={lang} />

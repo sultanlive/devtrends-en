@@ -6,6 +6,7 @@ interface CfEnv {
   SITE_URL: string;
   R2_PUBLIC_BASE: string;
   SITE_NAME: string;
+  TWITTER_HANDLE: string;
 }
 
 type Runtime = import("@astrojs/cloudflare").Runtime<CfEnv>;

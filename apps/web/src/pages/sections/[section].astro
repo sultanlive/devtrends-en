@@ -3,10 +3,11 @@ import Base from "../../layouts/Base.astro";
 import ArticleCard from "../../components/ArticleCard.astro";
 import Sidebar from "../../components/Sidebar.astro";
 import SectionIcon from "../../components/SectionIcon.astro";
-import { getEnv, setCacheHeaders } from "../../lib/site";
+import { getEnv, setCacheHeaders, siteUrl, canonical } from "../../lib/site";
 import { listBySection, countBySection, listLanguages } from "../../lib/db";
 import { getSection } from "../../lib/sections";
 import { DEFAULT_LOCALE, localeHref, sectionTitle, t } from "../../lib/i18n";
+import { breadcrumbLd } from "../../lib/seo";
 
 const { section: slug } = Astro.params as { section: string };
 const env = getEnv(Astro.locals);
@@ -35,9 +36,14 @@ const totalPages = Math.max(1, Math.ceil(total / perPage));
 const title = sectionTitle(locale, section.slug, section.title);
 const path = `/sections/${section.slug}`;
 const basePath = localeHref(locale, path);
+const site = siteUrl(Astro.locals, Astro.url);
+const jsonLd = breadcrumbLd([
+  { name: t(locale, "home"), url: canonical(site, localeHref(locale, "/")) },
+  { name: title, url: canonical(site, basePath) },
+]);
 ---
 
-<Base title={`${title} | ${env.SITE_NAME}`} description={section.description} path={path} ogType="website">
+<Base title={`${title} | ${env.SITE_NAME}`} description={section.description} path={path} ogType="website" jsonLd={jsonLd}>
   <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <div class="hidden lg:block">
       <Sidebar languages={languages} activeSection={section.slug} />
