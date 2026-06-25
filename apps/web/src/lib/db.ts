@@ -118,6 +118,27 @@ export async function countByTag(db: D1Database, tag: string): Promise<number> {
   return row?.n ?? 0;
 }
 
+/** Related projects: same language or any shared tag, excluding the current one. */
+export async function relatedArticles(
+  db: D1Database,
+  article: { id: number; language: string; tags: string[] },
+  limit = 6
+): Promise<Article[]> {
+  const tagClauses = article.tags.map(() => "tags LIKE ? ESCAPE '\\'");
+  const cond = ["language = ?", ...tagClauses].join(" OR ");
+  const tagBinds = article.tags.map((t) => `%"${escapeLike(t)}"%`);
+  const { results } = await db
+    .prepare(
+      `SELECT ${LIST_COLS} FROM articles
+        WHERE status = 'published' AND id != ? AND (${cond})
+        ORDER BY COALESCE(source_lastmod, updated_at) DESC, id DESC
+        LIMIT ?`
+    )
+    .bind(article.id, article.language, ...tagBinds, limit)
+    .all<Article>();
+  return results ?? [];
+}
+
 export async function listLanguages(db: D1Database): Promise<LanguageCount[]> {
   const { results } = await db
     .prepare(
