@@ -1,6 +1,7 @@
 ---
 import type { Article } from "../lib/db";
 import { articlePath, formatDate } from "../lib/site";
+import { langColor, langLabel } from "../lib/lang";
 
 export interface Props {
   article: Article;
@@ -8,33 +9,36 @@ export interface Props {
 const { article } = Astro.props;
 const href = articlePath(article.language, article.slug);
 const date = formatDate(article.source_lastmod ?? article.updated_at);
+const color = langColor(article.language);
 ---
 
-<article class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
-  {article.og_image && (
-    <a href={href} class="block aspect-[16/9] overflow-hidden bg-gray-100 dark:bg-gray-800">
-      <img
-        src={article.og_image}
-        alt={article.title_en}
-        loading="lazy"
-        decoding="async"
-        class="h-full w-full object-contain p-4 transition group-hover:scale-[1.02]"
-      />
-    </a>
-  )}
-  <div class="flex flex-1 flex-col gap-2 p-5">
-    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-      <a href={`/${article.language}`} class="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200">
-        {article.language}
-      </a>
-      {article.github_stars != null && <span>★ {article.github_stars.toLocaleString("en-US")}</span>}
-      {date && <span class="ml-auto">{date}</span>}
+<article class="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition duration-200 hover:-translate-y-0.5 hover:border-transparent hover:shadow-[0_10px_30px_-12px_rgba(14,17,22,0.22)] dark:border-line-dark dark:bg-surface-dark dark:hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
+  <span class="h-1 w-full shrink-0" style={`background:${color}`} aria-hidden="true"></span>
+
+  <div class="flex flex-1 flex-col gap-3 p-5">
+    <div class="flex items-center justify-between gap-2">
+      <span class="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-muted dark:text-muted-dark">
+        <span class="h-2 w-2 rounded-full" style={`background:${color}`}></span>
+        {langLabel(article.language)}
+      </span>
+      {date && <time class="font-mono text-xs text-muted dark:text-muted-dark">{date}</time>}
     </div>
-    <h2 class="text-lg font-semibold leading-snug">
-      <a href={href} class="hover:underline">{article.title_en}</a>
-    </h2>
+
+    <h3 class="font-display text-lg font-semibold leading-snug tracking-tight">
+      <a href={href} class="after:absolute after:inset-0 group-hover:underline decoration-2 underline-offset-2">
+        {article.title_en}
+      </a>
+    </h3>
+
     {article.excerpt_en && (
-      <p class="line-clamp-3 text-sm text-gray-600 dark:text-gray-300">{article.excerpt_en}</p>
+      <p class="line-clamp-2 text-sm leading-relaxed text-muted dark:text-muted-dark">{article.excerpt_en}</p>
+    )}
+
+    {article.github_stars != null && (
+      <div class="mt-auto flex items-center gap-1.5 pt-1 font-mono text-xs text-muted dark:text-muted-dark">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.401 8.168L12 18.896l-7.335 3.866 1.401-8.168L.132 9.21l8.2-1.192z"/></svg>
+        {article.github_stars.toLocaleString("en-US")}
+      </div>
     )}
   </div>
 </article>

@@ -6,12 +6,12 @@ const { siteName } = Astro.props;
 const year = new Date().getFullYear();
 ---
 
-<footer class="border-t border-gray-200 dark:border-gray-800">
-  <div class="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:text-gray-400">
+<footer class="mt-8 border-t border-line dark:border-line-dark">
+  <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 font-mono text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:text-muted-dark">
     <p>&copy; {year} {siteName}</p>
     <nav class="flex gap-4" aria-label="Footer">
-      <a href="/sitemap.xml" class="hover:text-gray-900 dark:hover:text-white">Sitemap</a>
-      <a href="/robots.txt" class="hover:text-gray-900 dark:hover:text-white">Robots</a>
+      <a href="/sitemap.xml" class="hover:text-ink dark:hover:text-ink-dark">sitemap.xml</a>
+      <a href="/robots.txt" class="hover:text-ink dark:hover:text-ink-dark">robots.txt</a>
     </nav>
   </div>
 </footer>

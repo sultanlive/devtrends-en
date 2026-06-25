@@ -1,23 +1,67 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-/* Class-based dark mode (Alpine toggles `.dark` on <html>). */
+/* Class-based dark mode (Alpine/inline JS toggles `.dark` on <html>). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  color-scheme: light dark;
+@theme {
+  /* Type — technical-editorial pairing (not Inter/Roboto). */
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Monochrome chrome — chroma comes only from language colors. */
+  --color-paper: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-ink: #0e1116;
+  --color-muted: #5b6472;
+  --color-line: #e6e8ee;
+
+  --color-paper-dark: #0b0e14;
+  --color-surface-dark: #121723;
+  --color-ink-dark: #e7ebf2;
+  --color-muted-dark: #98a2b3;
+  --color-line-dark: #232a37;
 }
 
-/* Avoid FOUC for the dark-mode toggle before Alpine hydrates. */
 html {
   scroll-behavior: smooth;
+  font-family: var(--font-sans);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+html.dark {
+  background: var(--color-paper-dark);
+  color: var(--color-ink-dark);
 }
 
-/* Keep Shiki code blocks readable in dark mode (source ships light bg). */
+/* Eyebrow / label utility — mono, tracked, small caps feel. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+/* Article body: keep Shiki code readable in dark mode (source ships light bg). */
+.prose pre {
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: 0.6rem;
+}
 .dark .prose pre {
   background-color: #0d1117 !important;
   color: #e6edf3;
+  border-color: var(--color-line-dark);
 }
-.prose pre {
-  overflow-x: auto;
+.prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  padding: 0.1em 0.35em;
+  border-radius: 0.3rem;
 }

@@ -1,0 +1,42 @@
+---
+import type { LanguageCount } from "../lib/db";
+import { langColor, langLabel } from "../lib/lang";
+
+export interface Props {
+  languages: LanguageCount[];
+  active?: string;
+}
+const { languages, active } = Astro.props;
+---
+
+<aside class="lg:sticky lg:top-20 lg:self-start">
+  <p class="eyebrow mb-3 text-muted dark:text-muted-dark">Languages</p>
+  <nav class="flex flex-col" aria-label="Languages">
+    {languages.map((l) => {
+      const isActive = active === l.language;
+      return (
+        <a
+          href={`/${l.language}`}
+          aria-current={isActive ? "page" : undefined}
+          class:list={[
+            "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition",
+            isActive
+              ? "bg-ink text-paper dark:bg-ink-dark dark:text-paper-dark"
+              : "text-ink hover:bg-line dark:text-ink-dark dark:hover:bg-line-dark",
+          ]}
+        >
+          <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${langColor(l.language)}`}></span>
+          <span class="truncate font-medium">{langLabel(l.language)}</span>
+          <span
+            class:list={[
+              "ml-auto font-mono text-xs",
+              isActive ? "text-paper/70 dark:text-paper-dark/70" : "text-muted dark:text-muted-dark",
+            ]}
+          >
+            {l.n}
+          </span>
+        </a>
+      );
+    })}
+  </nav>
+</aside>

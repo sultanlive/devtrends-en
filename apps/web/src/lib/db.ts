@@ -33,15 +33,29 @@ export function parseTags(json: string | null): string[] {
   }
 }
 
+function buildWhere(language?: string, q?: string): { sql: string; binds: unknown[] } {
+  const clauses = ["status = 'published'"];
+  const binds: unknown[] = [];
+  if (language) {
+    clauses.push("language = ?");
+    binds.push(language);
+  }
+  if (q && q.trim()) {
+    clauses.push("(title_en LIKE ? OR excerpt_en LIKE ? OR tags LIKE ?)");
+    const like = `%${q.trim()}%`;
+    binds.push(like, like, like);
+  }
+  return { sql: clauses.join(" AND "), binds };
+}
+
 export async function listArticles(
   db: D1Database,
-  opts: { limit: number; offset: number; language?: string } = { limit: 24, offset: 0 }
+  opts: { limit: number; offset: number; language?: string; q?: string } = { limit: 24, offset: 0 }
 ): Promise<Article[]> {
-  const where = opts.language ? "status = 'published' AND language = ?" : "status = 'published'";
-  const binds: unknown[] = opts.language ? [opts.language] : [];
+  const { sql, binds } = buildWhere(opts.language, opts.q);
   const { results } = await db
     .prepare(
-      `SELECT ${LIST_COLS} FROM articles WHERE ${where}
+      `SELECT ${LIST_COLS} FROM articles WHERE ${sql}
         ORDER BY COALESCE(source_lastmod, updated_at) DESC, id DESC
         LIMIT ? OFFSET ?`
     )
@@ -50,11 +64,10 @@ export async function listArticles(
   return results ?? [];
 }
 
-export async function countArticles(db: D1Database, language?: string): Promise<number> {
-  const where = language ? "status = 'published' AND language = ?" : "status = 'published'";
-  const binds = language ? [language] : [];
+export async function countArticles(db: D1Database, language?: string, q?: string): Promise<number> {
+  const { sql, binds } = buildWhere(language, q);
   const row = await db
-    .prepare(`SELECT COUNT(*) AS n FROM articles WHERE ${where}`)
+    .prepare(`SELECT COUNT(*) AS n FROM articles WHERE ${sql}`)
     .bind(...binds)
     .first<{ n: number }>();
   return row?.n ?? 0;

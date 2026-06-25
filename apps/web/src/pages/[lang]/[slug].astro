@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import { getEnv, canonical, articlePath, formatDate, setCacheHeaders } from "../../lib/site";
 import { getArticle, parseTags } from "../../lib/db";
+import { langColor, langLabel } from "../../lib/lang";
 
 const { lang, slug } = Astro.params as { lang: string; slug: string };
 const env = getEnv(Astro.locals);
@@ -16,6 +17,8 @@ const url = canonical(env.SITE_URL, articlePath(article.language, article.slug))
 const tags = parseTags(article.tags);
 const date = formatDate(article.source_lastmod ?? article.updated_at);
 const description = article.meta_description ?? article.excerpt_en ?? "";
+const color = langColor(article.language);
+const label = langLabel(article.language);
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -41,37 +44,47 @@ const jsonLd = {
   jsonLd={jsonLd}
 >
   <article class="mx-auto max-w-3xl">
-    <nav class="mb-4 text-sm text-gray-500 dark:text-gray-400" aria-label="Breadcrumb">
-      <a href="/" class="hover:underline">Home</a>
+    <nav class="mb-6 font-mono text-xs text-muted dark:text-muted-dark" aria-label="Breadcrumb">
+      <a href="/" class="hover:underline">~</a>
       <span class="mx-1">/</span>
       <a href={`/${article.language}`} class="hover:underline">{article.language}</a>
+      <span class="mx-1">/</span>
+      <span class="text-ink dark:text-ink-dark">{article.slug}</span>
     </nav>
 
-    <header class="mb-6 border-b border-gray-200 pb-6 dark:border-gray-800">
-      <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{article.title_en}</h1>
-      <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-        <a href={`/${article.language}`} class="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">{article.language}</a>
-        {article.github_stars != null && <span>★ {article.github_stars.toLocaleString("en-US")}</span>}
+    <header class="mb-8 border-b border-line pb-6 dark:border-line-dark">
+      <a href={`/${article.language}`} class="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-muted hover:text-ink dark:text-muted-dark dark:hover:text-ink-dark">
+        <span class="h-2.5 w-2.5 rounded-full" style={`background:${color}`}></span>
+        {label}
+      </a>
+      <h1 class="mt-3 font-display text-3xl font-bold leading-tight tracking-tight sm:text-[2.5rem]">{article.title_en}</h1>
+      <div class="mt-4 flex flex-wrap items-center gap-4 font-mono text-xs text-muted dark:text-muted-dark">
+        {article.github_stars != null && (
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.401 8.168L12 18.896l-7.335 3.866 1.401-8.168L.132 9.21l8.2-1.192z"/></svg>
+            {article.github_stars.toLocaleString("en-US")} stars
+          </span>
+        )}
         {date && <time>{date}</time>}
       </div>
     </header>
 
-    <div class="prose prose-gray max-w-none dark:prose-invert" set:html={article.body_html_en} />
+    <div class="prose prose-gray max-w-none font-sans dark:prose-invert prose-headings:font-display prose-headings:tracking-tight prose-a:text-ink dark:prose-a:text-ink-dark" set:html={article.body_html_en} />
 
     {tags.length > 0 && (
-      <footer class="mt-10 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tags</h2>
+      <footer class="mt-10 border-t border-line pt-6 dark:border-line-dark">
+        <p class="eyebrow mb-3 text-muted dark:text-muted-dark">Tags</p>
         <div class="flex flex-wrap gap-2">
           {tags.map((t) => (
-            <span class="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-200">#{t}</span>
+            <span class="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted dark:border-line-dark dark:text-muted-dark">#{t}</span>
           ))}
         </div>
       </footer>
     )}
 
-    <p class="mt-8 text-xs text-gray-400 dark:text-gray-500">
-      Translated from the original Russian article.
-      <a href={article.source_url} rel="nofollow noopener" class="underline hover:text-gray-600 dark:hover:text-gray-300" target="_blank">View source</a>.
+    <p class="mt-8 font-mono text-xs text-muted dark:text-muted-dark">
+      Translated from the original Russian.
+      <a href={article.source_url} rel="nofollow noopener" target="_blank" class="underline underline-offset-2 hover:text-ink dark:hover:text-ink-dark">View source ↗</a>
     </p>
   </article>
 </Base>

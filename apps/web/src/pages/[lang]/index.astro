@@ -1,13 +1,18 @@
 ---
 import Base from "../../layouts/Base.astro";
 import ArticleCard from "../../components/ArticleCard.astro";
+import Sidebar from "../../components/Sidebar.astro";
 import { getEnv, canonical, setCacheHeaders } from "../../lib/site";
-import { listArticles, countArticles } from "../../lib/db";
+import { langColor, langLabel } from "../../lib/lang";
+import { listArticles, countArticles, listLanguages } from "../../lib/db";
 
 const { lang } = Astro.params as { lang: string };
 const env = getEnv(Astro.locals);
 
-const total = await countArticles(env.DB, lang);
+const [total, languages] = await Promise.all([
+  countArticles(env.DB, lang),
+  listLanguages(env.DB),
+]);
 if (total === 0) {
   return new Response("Not Found", { status: 404 });
 }
@@ -19,37 +24,50 @@ const offset = (page - 1) * perPage;
 const articles = await listArticles(env.DB, { limit: perPage, offset, language: lang });
 const totalPages = Math.max(1, Math.ceil(total / perPage));
 
-const title = `${lang} projects | ${env.SITE_NAME}`;
-const description = `English write-ups of curated ${lang} open-source projects and developer tools (${total}).`;
+const label = langLabel(lang);
+const color = langColor(lang);
 const basePath = `/${lang}`;
+const description = `English write-ups of curated ${label} open-source projects and developer tools (${total}).`;
 ---
 
 <Base
-  title={title}
+  title={`${label} projects | ${env.SITE_NAME}`}
   description={description}
   canonicalUrl={canonical(env.SITE_URL, page > 1 ? `${basePath}?page=${page}` : basePath)}
   siteName={env.SITE_NAME}
   ogType="website"
 >
-  <nav class="mb-4 text-sm text-gray-500 dark:text-gray-400" aria-label="Breadcrumb">
-    <a href="/" class="hover:underline">Home</a><span class="mx-1">/</span><span>{lang}</span>
-  </nav>
+  <div class="grid gap-8 lg:grid-cols-[15rem_1fr]">
+    <div class="hidden lg:block">
+      <Sidebar languages={languages} active={lang} />
+    </div>
 
-  <h1 class="mb-6 text-3xl font-bold capitalize tracking-tight">{lang}</h1>
+    <div>
+      <nav class="mb-4 font-mono text-xs text-muted dark:text-muted-dark" aria-label="Breadcrumb">
+        <a href="/" class="hover:underline">~</a> <span class="mx-1">/</span> <span>{lang}</span>
+      </nav>
 
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    {articles.map((a) => <ArticleCard article={a} />)}
+      <header class="mb-8 flex items-center gap-3 border-b border-line pb-6 dark:border-line-dark">
+        <span class="h-5 w-5 rounded-full" style={`background:${color}`} aria-hidden="true"></span>
+        <h1 class="font-display text-3xl font-bold tracking-tight">{label}</h1>
+        <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} projects</span>
+      </header>
+
+      <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {articles.map((a) => <ArticleCard article={a} />)}
+      </div>
+
+      {totalPages > 1 && (
+        <nav class="mt-10 flex items-center justify-between" aria-label="Pagination">
+          {page > 1 ? (
+            <a href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} rel="prev" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← Newer</a>
+          ) : <span></span>}
+          <span class="font-mono text-xs text-muted dark:text-muted-dark">{page} / {totalPages}</span>
+          {page < totalPages ? (
+            <a href={`${basePath}?page=${page + 1}`} rel="next" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">Older →</a>
+          ) : <span></span>}
+        </nav>
+      )}
+    </div>
   </div>
-
-  {totalPages > 1 && (
-    <nav class="mt-10 flex items-center justify-between" aria-label="Pagination">
-      {page > 1 ? (
-        <a href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} rel="prev" class="rounded-md border border-gray-300 px-4 py-2 text-sm dark:border-gray-700">&larr; Newer</a>
-      ) : <span></span>}
-      <span class="text-sm text-gray-500 dark:text-gray-400">Page {page} of {totalPages}</span>
-      {page < totalPages ? (
-        <a href={`${basePath}?page=${page + 1}`} rel="next" class="rounded-md border border-gray-300 px-4 py-2 text-sm dark:border-gray-700">Older &rarr;</a>
-      ) : <span></span>}
-    </nav>
-  )}
 </Base>

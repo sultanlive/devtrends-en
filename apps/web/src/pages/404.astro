@@ -10,9 +10,10 @@ const env = getEnv(Astro.locals);
   canonicalUrl={canonical(env.SITE_URL, "/404")}
   siteName={env.SITE_NAME}
 >
-  <section class="py-20 text-center">
-    <h1 class="text-5xl font-bold">404</h1>
-    <p class="mt-4 text-gray-600 dark:text-gray-300">We couldn't find that page.</p>
-    <a href="/" class="mt-6 inline-block rounded-md border border-gray-300 px-4 py-2 text-sm dark:border-gray-700">Back home</a>
+  <section class="py-24 text-center">
+    <p class="eyebrow text-muted dark:text-muted-dark">Error</p>
+    <h1 class="mt-2 font-display text-6xl font-bold tracking-tight">404</h1>
+    <p class="mt-4 text-muted dark:text-muted-dark">We couldn't find that page.</p>
+    <a href="/" class="mt-6 inline-block rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← Back home</a>
   </section>
 </Base>

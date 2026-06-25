@@ -3,66 +3,59 @@ export interface Props {
   siteName: string;
 }
 const { siteName } = Astro.props;
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/#languages", label: "Languages" },
-];
+const q = Astro.url.searchParams.get("q") ?? "";
+const brand = siteName.replace(/\s+EN$/i, "");
 ---
 
 <header
-  class="sticky top-0 z-20 border-b border-gray-200 bg-white/80 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80"
+  class="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur dark:border-line-dark dark:bg-paper-dark/85"
   x-data="{ open: false }"
 >
-  <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-    <a href="/" class="text-lg font-bold tracking-tight">
-      {siteName}
+  <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+    <!-- Wordmark -->
+    <a href="/" class="flex shrink-0 items-center gap-2" aria-label="Home">
+      <span class="flex h-7 w-7 items-center justify-center rounded-md bg-ink font-mono text-sm font-semibold text-paper dark:bg-ink-dark dark:text-paper-dark">&gt;_</span>
+      <span class="font-display text-lg font-bold tracking-tight">
+        {brand}<span class="ml-1 align-top font-mono text-[0.6rem] font-medium text-muted dark:text-muted-dark">EN</span>
+      </span>
     </a>
 
-    <nav class="hidden items-center gap-6 sm:flex" aria-label="Primary">
-      {links.map((l) => (
-        <a href={l.href} class="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-          {l.label}
-        </a>
-      ))}
-      <button
-        type="button"
-        onclick="toggleTheme()"
-        aria-label="Toggle dark mode"
-        class="rounded-md p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-      >
-        <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-        <svg class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-      </button>
-    </nav>
+    <!-- Search (functional, no JS) -->
+    <form action="/" method="get" role="search" class="ml-auto hidden max-w-md flex-1 sm:flex">
+      <div class="relative w-full">
+        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted dark:text-muted-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+        <input
+          type="search"
+          name="q"
+          value={q}
+          placeholder="Search projects…"
+          class="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 font-mono text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink dark:border-line-dark dark:bg-surface-dark dark:text-ink-dark dark:placeholder:text-muted-dark dark:focus:border-ink-dark dark:focus:ring-ink-dark"
+        />
+      </div>
+    </form>
 
-    <!-- Mobile controls -->
-    <div class="flex items-center gap-1 sm:hidden">
-      <button type="button" onclick="toggleTheme()" aria-label="Toggle dark mode" class="rounded-md p-2 text-gray-600 dark:text-gray-300">
-        <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-        <svg class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-      </button>
-      <button type="button" @click="open = !open" :aria-expanded="open" aria-label="Toggle menu" class="rounded-md p-2 text-gray-600 dark:text-gray-300">
-        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-      </button>
-    </div>
+    <!-- Theme toggle -->
+    <button
+      type="button"
+      onclick="toggleTheme()"
+      aria-label="Toggle dark mode"
+      class="ml-auto shrink-0 rounded-lg p-2 text-muted hover:bg-line hover:text-ink sm:ml-0 dark:text-muted-dark dark:hover:bg-line-dark dark:hover:text-ink-dark"
+    >
+      <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      <svg class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    </button>
+
+    <!-- Mobile menu toggle -->
+    <button type="button" @click="open = !open" :aria-expanded="open" aria-label="Toggle menu" class="shrink-0 rounded-lg p-2 text-muted hover:bg-line sm:hidden dark:text-muted-dark dark:hover:bg-line-dark">
+      <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
   </div>
 
-  <!-- Mobile menu -->
-  <nav
-    x-show="open"
-    x-cloak
-    x-transition
-    class="border-t border-gray-200 px-4 pb-4 sm:hidden dark:border-gray-800"
-    aria-label="Mobile"
-  >
-    {links.map((l) => (
-      <a href={l.href} class="block py-2 text-sm font-medium text-gray-700 dark:text-gray-200">
-        {l.label}
-      </a>
-    ))}
-  </nav>
+  <!-- Mobile drawer: search + nav -->
+  <div x-show="open" x-cloak x-transition class="border-t border-line px-4 pb-4 sm:hidden dark:border-line-dark">
+    <form action="/" method="get" role="search" class="mt-3">
+      <input type="search" name="q" value={q} placeholder="Search projects…" class="w-full rounded-lg border border-line bg-surface px-3 py-2 font-mono text-sm dark:border-line-dark dark:bg-surface-dark" />
+    </form>
+    <a href="/" class="mt-2 block py-2 text-sm font-medium">Home</a>
+  </div>
 </header>
-
-<style is:global>
-  [x-cloak] { display: none !important; }
-</style>
