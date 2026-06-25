@@ -1,0 +1,17 @@
+---
+export interface Props {
+  siteName: string;
+}
+const { siteName } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-gray-200 dark:border-gray-800">
+  <div class="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:text-gray-400">
+    <p>&copy; {year} {siteName}</p>
+    <nav class="flex gap-4" aria-label="Footer">
+      <a href="/sitemap.xml" class="hover:text-gray-900 dark:hover:text-white">Sitemap</a>
+      <a href="/robots.txt" class="hover:text-gray-900 dark:hover:text-white">Robots</a>
+    </nav>
+  </div>
+</footer>

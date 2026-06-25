@@ -1,0 +1,29 @@
+# Bindings for the Pages site. Used by platformProxy in `astro dev` and by
+# `wrangler pages dev`. Must reference the SAME D1 database + R2 bucket as the
+# parser. In the Pages dashboard, add the identical bindings for production.
+name = "devtrends-web"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "devtrends"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "devtrends-images"
+
+# @astrojs/cloudflare auto-enables KV-backed sessions and expects this binding.
+# Local dev simulates it automatically. For production:
+#   wrangler kv namespace create SESSION
+# then paste the id below (free tier).
+[[kv_namespaces]]
+binding = "SESSION"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[vars]
+SITE_URL = "https://example.com"
+R2_PUBLIC_BASE = "https://img.example.com"
+SITE_NAME = "DevTrends EN"

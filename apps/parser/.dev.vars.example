@@ -1,0 +1,5 @@
+# Copy to .dev.vars (gitignored) for local `wrangler dev`.
+# Secrets only — non-secret config lives in wrangler.toml [vars].
+OPENAI_API_KEY = "sk-..."
+# Optional: cache purge-on-publish
+CF_API_TOKEN = ""

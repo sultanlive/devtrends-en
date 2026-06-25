@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Class-based dark mode (Alpine toggles `.dark` on <html>). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light dark;
+}
+
+/* Avoid FOUC for the dark-mode toggle before Alpine hydrates. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Keep Shiki code blocks readable in dark mode (source ships light bg). */
+.dark .prose pre {
+  background-color: #0d1117 !important;
+  color: #e6edf3;
+}
+.prose pre {
+  overflow-x: auto;
+}

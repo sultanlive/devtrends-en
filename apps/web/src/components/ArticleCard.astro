@@ -1,0 +1,40 @@
+---
+import type { Article } from "../lib/db";
+import { articlePath, formatDate } from "../lib/site";
+
+export interface Props {
+  article: Article;
+}
+const { article } = Astro.props;
+const href = articlePath(article.language, article.slug);
+const date = formatDate(article.source_lastmod ?? article.updated_at);
+---
+
+<article class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
+  {article.og_image && (
+    <a href={href} class="block aspect-[16/9] overflow-hidden bg-gray-100 dark:bg-gray-800">
+      <img
+        src={article.og_image}
+        alt={article.title_en}
+        loading="lazy"
+        decoding="async"
+        class="h-full w-full object-contain p-4 transition group-hover:scale-[1.02]"
+      />
+    </a>
+  )}
+  <div class="flex flex-1 flex-col gap-2 p-5">
+    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+      <a href={`/${article.language}`} class="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200">
+        {article.language}
+      </a>
+      {article.github_stars != null && <span>★ {article.github_stars.toLocaleString("en-US")}</span>}
+      {date && <span class="ml-auto">{date}</span>}
+    </div>
+    <h2 class="text-lg font-semibold leading-snug">
+      <a href={href} class="hover:underline">{article.title_en}</a>
+    </h2>
+    {article.excerpt_en && (
+      <p class="line-clamp-3 text-sm text-gray-600 dark:text-gray-300">{article.excerpt_en}</p>
+    )}
+  </div>
+</article>

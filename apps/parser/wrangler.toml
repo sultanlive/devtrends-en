@@ -1,0 +1,43 @@
+name = "devtrends-parser"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Cron: runs frequently; each tick discovers new sitemap entries and processes
+# a small batch of pending articles (keeps CPU + subrequests within free tier).
+[triggers]
+crons = ["*/3 * * * *"]
+
+# --- Non-secret config (override per environment) ---
+[vars]
+SOURCE_BASE = "https://devtrends.ru"
+USER_AGENT = "devtrends-en-bot/0.1 (+https://example.com)"
+BACKFILL_LIMIT = "20"          # initial cap; raise/remove for full backfill
+PROCESS_BATCH = "2"            # pending articles processed per cron tick
+OPENAI_BASE_URL = "https://api.openai.com/v1"
+OPENAI_MODEL = "gpt-4o-mini"
+R2_PUBLIC_BASE = "https://img.example.com"   # R2 custom domain (set to yours)
+SITE_URL = "https://example.com"             # your custom domain
+# CF_ZONE_ID is needed only if you enable cache purge-on-publish:
+# CF_ZONE_ID = "<zone id>"
+
+# --- Bindings ---
+# Create with:
+#   wrangler d1 create devtrends
+#   wrangler r2 bucket create devtrends-images
+# then paste the database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "devtrends"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "devtrends-images"
+
+# --- Secrets (do NOT put here; set via `wrangler secret put`) ---
+#   wrangler secret put OPENAI_API_KEY
+#   wrangler secret put CF_API_TOKEN      # optional, for cache purge
+#
+# Local dev: copy .dev.vars.example -> .dev.vars and fill values.

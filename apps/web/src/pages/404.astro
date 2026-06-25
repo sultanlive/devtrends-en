@@ -1,0 +1,18 @@
+---
+import Base from "../layouts/Base.astro";
+import { getEnv, canonical } from "../lib/site";
+const env = getEnv(Astro.locals);
+---
+
+<Base
+  title={`Not found | ${env.SITE_NAME}`}
+  description="Page not found"
+  canonicalUrl={canonical(env.SITE_URL, "/404")}
+  siteName={env.SITE_NAME}
+>
+  <section class="py-20 text-center">
+    <h1 class="text-5xl font-bold">404</h1>
+    <p class="mt-4 text-gray-600 dark:text-gray-300">We couldn't find that page.</p>
+    <a href="/" class="mt-6 inline-block rounded-md border border-gray-300 px-4 py-2 text-sm dark:border-gray-700">Back home</a>
+  </section>
+</Base>

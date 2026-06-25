@@ -1,0 +1,20 @@
+{
+  "name": "devtrends-en",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Automated EN content pipeline: scrape devtrends.ru -> translate -> publish on Cloudflare",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "parser:dev": "npm run dev -w apps/parser",
+    "parser:deploy": "npm run deploy -w apps/parser",
+    "web:dev": "npm run dev -w apps/web",
+    "web:build": "npm run build -w apps/web",
+    "db:migrate:local": "npm run db:migrate:local -w apps/parser",
+    "db:migrate:remote": "npm run db:migrate:remote -w apps/parser"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
