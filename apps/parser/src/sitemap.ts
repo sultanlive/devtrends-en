@@ -52,14 +52,18 @@ export async function discover(env: Env): Promise<number> {
 
   let count = 0;
   for (const e of articles.slice(0, limit)) {
-    const inserted = await upsertDiscovered(
-      env,
-      e.loc,
-      e.lastmod,
-      e.parsed!.language,
-      e.parsed!.rawSlug
-    );
-    if (inserted) count++;
+    try {
+      const inserted = await upsertDiscovered(
+        env,
+        e.loc,
+        e.lastmod,
+        e.parsed!.language,
+        e.parsed!.rawSlug
+      );
+      if (inserted) count++;
+    } catch (err) {
+      console.log(`discover skip ${e.loc}: ${String(err).slice(0, 120)}`);
+    }
   }
   return count;
 }

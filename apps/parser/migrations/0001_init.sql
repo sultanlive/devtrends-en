@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS articles (
   source_url       TEXT NOT NULL UNIQUE,
   source_lastmod   TEXT,                 -- from sitemap <lastmod>
   language         TEXT,                 -- {language} segment of source URL
-  slug             TEXT UNIQUE,          -- mirrors project slug (ascii)
+  slug             TEXT,                 -- mirrors project slug (unique per language, see below)
   title_en         TEXT,
   excerpt_en       TEXT,
   body_html_en     TEXT,
@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS articles (
   attempts         INTEGER NOT NULL DEFAULT 0,
   error            TEXT,
   created_at       TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at       TEXT
+  updated_at       TEXT,
+  UNIQUE(language, slug)                 -- same project slug may repeat across languages
 );
 
 CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);

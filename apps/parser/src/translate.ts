@@ -36,9 +36,27 @@ STRICT RULES:
 Fields: "title" (plain text), "body_html" (translated HTML, same structure), "excerpt" (1-2 sentence summary, ~160 chars), "meta_description" (SEO description, max 160 chars).`;
 
 /**
+ * Pull the JSON object out of the model's reply. Reasoning models (e.g.
+ * MiniMax) prepend a <think>…</think> block and may wrap JSON in code fences,
+ * so we strip those before parsing.
+ */
+function extractJsonObject(content: string): string {
+  let s = content ?? "";
+  const end = s.lastIndexOf("</think>");
+  if (end !== -1) s = s.slice(end + "</think>".length);
+  s = s.trim();
+  if (s.startsWith("```")) s = s.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+  const first = s.indexOf("{");
+  const last = s.lastIndexOf("}");
+  if (first !== -1 && last > first) s = s.slice(first, last + 1);
+  return s;
+}
+
+/**
  * One OpenAI structured-output call. Provider is selected by env
- * (OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_API_KEY) — point baseURL at any
- * OpenAI-compatible endpoint that supports JSON-schema structured outputs.
+ * (OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_API_KEY). We request a JSON-schema
+ * response but parse/validate the content ourselves so reasoning models that
+ * emit a <think> preamble still work.
  */
 async function structuredTranslate(env: Env, system: string, user: string): Promise<TranslatedArticle> {
   const client = new OpenAI({
@@ -46,10 +64,10 @@ async function structuredTranslate(env: Env, system: string, user: string): Prom
     baseURL: env.OPENAI_BASE_URL || undefined,
   });
 
-  const completion = await client.beta.chat.completions.parse({
+  const completion = await client.chat.completions.create({
     model: env.OPENAI_MODEL,
     temperature: 0.2,
-    max_tokens: 8000,
+    max_tokens: 16000,
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
@@ -59,8 +77,16 @@ async function structuredTranslate(env: Env, system: string, user: string): Prom
 
   const message = completion.choices[0]?.message;
   if (message?.refusal) throw new Error(`LLM refused: ${message.refusal}`);
-  const parsed = message?.parsed;
-  if (!parsed) throw new Error("LLM returned no structured output");
+  const content = message?.content ?? "";
+  if (!content) throw new Error("LLM returned empty content");
+
+  let obj: unknown;
+  try {
+    obj = JSON.parse(extractJsonObject(content));
+  } catch {
+    throw new Error("could not parse JSON from model output");
+  }
+  const parsed = TranslationSchema.parse(obj);
 
   return {
     title: parsed.title,
