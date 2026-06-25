@@ -1,0 +1,11 @@
+{
+  "name": "@devtrends/parser-runner",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Off-Cloudflare parser runner for GitHub Actions (D1 via REST, R2 via wrangler)",
+  "scripts": {
+    "process": "tsx src/main.ts process",
+    "discover": "tsx src/main.ts discover"
+  }
+}

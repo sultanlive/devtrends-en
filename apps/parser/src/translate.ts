@@ -62,6 +62,8 @@ async function structuredTranslate(env: Env, system: string, user: string): Prom
   const client = new OpenAI({
     apiKey: env.OPENAI_API_KEY,
     baseURL: env.OPENAI_BASE_URL || undefined,
+    timeout: 120_000, // bound a slow/hung LLM call (per request)
+    maxRetries: 1,
   });
 
   const completion = await client.chat.completions.create({

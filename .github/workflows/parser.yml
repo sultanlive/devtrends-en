@@ -1,0 +1,61 @@
+name: Parser
+
+# Runs the content pipeline off-Cloudflare (no Workers per-invocation limits).
+# Writes to the same D1 + R2 the site reads. Secrets required:
+#   CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, OPENAI_API_KEY,
+#   OPENAI_BASE_URL, OPENAI_MODEL.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # process: 1 article every 30 min (~48/day)
+    - cron: "11 */6 * * *"   # discover: full sitemap sweep every 6h
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "process or discover"
+        type: choice
+        options: [process, discover]
+        default: process
+
+permissions:
+  contents: read
+
+concurrency:
+  group: parser
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25            # hard cap so a hung run can't linger
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Decide mode
+        id: mode
+        run: |
+          MODE="${{ github.event.inputs.mode }}"
+          if [ -z "$MODE" ]; then
+            if [ "${{ github.event.schedule }}" = "11 */6 * * *" ]; then MODE=discover; else MODE=process; fi
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+
+      - name: Run parser (${{ steps.mode.outputs.mode }})
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          D1_DATABASE_ID: a3c30e32-6cfe-48d5-860b-1a8775e9d3cf
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          R2_PUBLIC_BASE: "https://pub-e9ef8e20353d4db4867193b8578534d8.r2.dev"
+          SOURCE_BASE: "https://devtrends.ru"
+          USER_AGENT: "devtrends-en-bot/0.1 (+https://devtrends-en.pages.dev)"
+          TARGET_LOCALES: "es,de,zh,ja,fr,pt,it,nl,pl"
+          PROCESS_BATCH: "1"
+        run: npx tsx apps/parser-runner/src/main.ts "${{ steps.mode.outputs.mode }}"
