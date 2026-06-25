@@ -47,7 +47,7 @@ const jsonLd = [
 ---
 
 <Base
-  title={q ? `${t(locale, "results_for")} ${q} | ${env.SITE_NAME}` : env.SITE_NAME}
+  title={q ? `${t(locale, "results_for")} ${q} | ${env.SITE_NAME}` : `${env.SITE_NAME} — ${t(locale, "hero_title")}`}
   description={description}
   path="/"
   ogType="website"
