@@ -37,7 +37,7 @@ const description = `English write-ups of curated ${label} open-source projects 
   siteName={env.SITE_NAME}
   ogType="website"
 >
-  <div class="grid gap-8 lg:grid-cols-[15rem_1fr]">
+  <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <div class="hidden lg:block">
       <Sidebar languages={languages} active={lang} />
     </div>
@@ -53,7 +53,7 @@ const description = `English write-ups of curated ${label} open-source projects 
         <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} projects</span>
       </header>
 
-      <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {articles.map((a) => <ArticleCard article={a} />)}
       </div>
 

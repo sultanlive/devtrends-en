@@ -65,7 +65,7 @@ if (showHero) {
     </section>
   )}
 
-  <div class="grid gap-8 lg:grid-cols-[15rem_1fr]">
+  <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <div class="hidden lg:block">
       <Sidebar languages={languages} />
     </div>
@@ -93,7 +93,7 @@ if (showHero) {
           {q ? `No projects match “${q}”.` : "No projects published yet."}
         </p>
       ) : (
-        <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {articles.map((a) => <ArticleCard article={a} />)}
         </div>
       )}
