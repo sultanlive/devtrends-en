@@ -4,6 +4,7 @@ import type { Env, TranslatedArticle } from "./types";
 export const LOCALE_LANG: Record<string, string> = {
   es: "Spanish",
   de: "German",
+  zh: "Simplified Chinese",
   ja: "Japanese",
   fr: "French",
   pt: "Portuguese",

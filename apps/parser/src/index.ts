@@ -6,7 +6,7 @@ import { processMedia } from "./media";
 import { translateArticle, translateToLocale } from "./translate";
 import { purgeForArticle } from "./cache";
 
-const DEFAULT_TARGET_LOCALES = "es,de,ja,fr,pt,it,nl,pl";
+const DEFAULT_TARGET_LOCALES = "es,de,zh,ja,fr,pt,it,nl,pl";
 
 /** Discover new sitemap entries, then translate & publish a small batch. */
 async function runPipeline(env: Env): Promise<{ discovered: number; processed: number; failed: number }> {
