@@ -1,0 +1,69 @@
+---
+import Base from "../../layouts/Base.astro";
+import ArticleCard from "../../components/ArticleCard.astro";
+import Sidebar from "../../components/Sidebar.astro";
+import { getEnv, canonical, setCacheHeaders } from "../../lib/site";
+import { listByTag, countByTag, listLanguages } from "../../lib/db";
+
+const { tag } = Astro.params as { tag: string };
+const env = getEnv(Astro.locals);
+
+const [total, languages] = await Promise.all([
+  countByTag(env.DB, tag),
+  listLanguages(env.DB),
+]);
+if (total === 0) {
+  return new Response("Not Found", { status: 404 });
+}
+setCacheHeaders(Astro, 300);
+
+const perPage = 24;
+const page = Math.max(1, Number(Astro.url.searchParams.get("page") ?? "1") || 1);
+const offset = (page - 1) * perPage;
+const articles = await listByTag(env.DB, tag, { limit: perPage, offset });
+const totalPages = Math.max(1, Math.ceil(total / perPage));
+
+const basePath = `/tag/${encodeURIComponent(tag)}`;
+const description = `Curated open-source projects and developer tools tagged “${tag}” (${total}).`;
+---
+
+<Base
+  title={`#${tag} | ${env.SITE_NAME}`}
+  description={description}
+  canonicalUrl={canonical(env.SITE_URL, page > 1 ? `${basePath}?page=${page}` : basePath)}
+  siteName={env.SITE_NAME}
+  ogType="website"
+>
+  <div class="grid gap-8 lg:grid-cols-[15rem_1fr]">
+    <div class="hidden lg:block">
+      <Sidebar languages={languages} />
+    </div>
+
+    <div>
+      <nav class="mb-4 font-mono text-xs text-muted dark:text-muted-dark" aria-label="Breadcrumb">
+        <a href="/" class="hover:underline">~</a> <span class="mx-1">/</span> <span>tag</span> <span class="mx-1">/</span> <span>{tag}</span>
+      </nav>
+
+      <header class="mb-8 flex items-baseline gap-3 border-b border-line pb-6 dark:border-line-dark">
+        <h1 class="font-display text-3xl font-bold tracking-tight">#{tag}</h1>
+        <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} projects</span>
+      </header>
+
+      <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {articles.map((a) => <ArticleCard article={a} />)}
+      </div>
+
+      {totalPages > 1 && (
+        <nav class="mt-10 flex items-center justify-between" aria-label="Pagination">
+          {page > 1 ? (
+            <a href={page - 1 === 1 ? basePath : `${basePath}?page=${page - 1}`} rel="prev" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← Newer</a>
+          ) : <span></span>}
+          <span class="font-mono text-xs text-muted dark:text-muted-dark">{page} / {totalPages}</span>
+          {page < totalPages ? (
+            <a href={`${basePath}?page=${page + 1}`} rel="next" class="rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">Older →</a>
+          ) : <span></span>}
+        </nav>
+      )}
+    </div>
+  </div>
+</Base>

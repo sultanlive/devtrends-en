@@ -1,6 +1,6 @@
 import type { APIContext } from "astro";
 import { getEnv, canonical, articlePath } from "../lib/site";
-import { allPublishedUrls, listLanguages } from "../lib/db";
+import { allPublishedUrls, listLanguages, allTags } from "../lib/db";
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -8,14 +8,16 @@ function esc(s: string): string {
 
 export async function GET(context: APIContext): Promise<Response> {
   const env = getEnv(context.locals);
-  const [articles, languages] = await Promise.all([
+  const [articles, languages, tags] = await Promise.all([
     allPublishedUrls(env.DB),
     listLanguages(env.DB),
+    allTags(env.DB),
   ]);
 
   const urls: { loc: string; lastmod?: string | null }[] = [
     { loc: canonical(env.SITE_URL, "/") },
     ...languages.map((l) => ({ loc: canonical(env.SITE_URL, `/${l.language}`) })),
+    ...tags.map((t) => ({ loc: canonical(env.SITE_URL, `/tag/${encodeURIComponent(t)}`) })),
     ...articles.map((a) => ({
       loc: canonical(env.SITE_URL, articlePath(a.language, a.slug)),
       lastmod: a.source_lastmod ?? a.updated_at,

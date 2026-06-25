@@ -86,6 +86,38 @@ export async function getArticle(
     .first<Article>();
 }
 
+/** Escape LIKE wildcards so a tag with %/_/\ matches literally. */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+export async function listByTag(
+  db: D1Database,
+  tag: string,
+  opts: { limit: number; offset: number } = { limit: 24, offset: 0 }
+): Promise<Article[]> {
+  const needle = `%"${escapeLike(tag)}"%`;
+  const { results } = await db
+    .prepare(
+      `SELECT ${LIST_COLS} FROM articles
+        WHERE status = 'published' AND tags LIKE ? ESCAPE '\\'
+        ORDER BY COALESCE(source_lastmod, updated_at) DESC, id DESC
+        LIMIT ? OFFSET ?`
+    )
+    .bind(needle, opts.limit, opts.offset)
+    .all<Article>();
+  return results ?? [];
+}
+
+export async function countByTag(db: D1Database, tag: string): Promise<number> {
+  const needle = `%"${escapeLike(tag)}"%`;
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS n FROM articles WHERE status = 'published' AND tags LIKE ? ESCAPE '\\'`)
+    .bind(needle)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
 export async function listLanguages(db: D1Database): Promise<LanguageCount[]> {
   const { results } = await db
     .prepare(
@@ -95,6 +127,15 @@ export async function listLanguages(db: D1Database): Promise<LanguageCount[]> {
     )
     .all<LanguageCount>();
   return results ?? [];
+}
+
+export async function allTags(db: D1Database): Promise<string[]> {
+  const { results } = await db
+    .prepare("SELECT tags FROM articles WHERE status = 'published' AND tags IS NOT NULL")
+    .all<{ tags: string }>();
+  const set = new Set<string>();
+  for (const r of results ?? []) for (const t of parseTags(r.tags)) set.add(t);
+  return [...set].sort();
 }
 
 export async function allPublishedUrls(

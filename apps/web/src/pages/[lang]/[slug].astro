@@ -76,7 +76,10 @@ const jsonLd = {
         <p class="eyebrow mb-3 text-muted dark:text-muted-dark">Tags</p>
         <div class="flex flex-wrap gap-2">
           {tags.map((t) => (
-            <span class="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted dark:border-line-dark dark:text-muted-dark">#{t}</span>
+            <a
+              href={`/tag/${encodeURIComponent(t)}`}
+              class="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted transition hover:border-ink hover:text-ink dark:border-line-dark dark:text-muted-dark dark:hover:border-ink-dark dark:hover:text-ink-dark"
+            >#{t}</a>
           ))}
         </div>
       </footer>
