@@ -14,7 +14,7 @@ crons = []   # PAUSED until the $5 Workers Paid plan is active
 # --- Non-secret config (override per environment) ---
 [vars]
 SOURCE_BASE = "https://devtrends.ru"
-USER_AGENT = "devtrends-en-bot/0.1 (+https://example.com)"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 BACKFILL_LIMIT = "20"          # initial cap; raise/remove for full backfill
 PROCESS_BATCH = "1"            # articles per tick (each = EN + 8 locale translations)
 TARGET_LOCALES = "es,de,zh,ja,fr,pt,it,nl,pl"   # locales to translate into (besides English)

@@ -134,11 +134,53 @@ export async function markPublished(
 }
 
 export async function markFailed(env: Env, id: number, error: string): Promise<void> {
+  // Re-queue transient failures (e.g. a slow/timed-out LLM call) so they retry;
+  // give up after 5 attempts. `attempts` is incremented by claimPending.
   await env.DB.prepare(
-    "UPDATE articles SET status = 'failed', error = ?, updated_at = datetime('now') WHERE id = ?"
+    "UPDATE articles SET status = CASE WHEN attempts < 5 THEN 'pending' ELSE 'failed' END, error = ?, updated_at = datetime('now') WHERE id = ?"
   )
     .bind(error.slice(0, 1000), id)
     .run();
+}
+
+/**
+ * Published articles that don't yet have a translation for `locale` (newest
+ * first). Used to backfill missing locales a few at a time — resumable, so a
+ * timed-out run is simply retried on the next tick. Returns the English source
+ * fields needed to translate.
+ */
+export async function getPublishedMissingLocale(
+  env: Env,
+  locale: string,
+  limit: number
+): Promise<{ id: number; slug: string | null; language: string | null; en: TranslatedArticle }[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT a.id, a.slug, a.language, a.title_en, a.excerpt_en, a.body_html_en, a.meta_description
+       FROM articles a
+      WHERE a.status = 'published' AND a.title_en IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM article_translations t WHERE t.article_id = a.id AND t.locale = ?
+        )
+      ORDER BY a.updated_at DESC
+      LIMIT ?`
+  )
+    .bind(locale, limit)
+    .all<{
+      id: number; slug: string | null; language: string | null;
+      title_en: string | null; excerpt_en: string | null;
+      body_html_en: string | null; meta_description: string | null;
+    }>();
+  return (results ?? []).map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    language: r.language,
+    en: {
+      title: r.title_en ?? "",
+      body_html: r.body_html_en ?? "",
+      excerpt: r.excerpt_en ?? "",
+      meta_description: r.meta_description ?? "",
+    },
+  }));
 }
 
 export async function logRun(

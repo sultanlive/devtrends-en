@@ -24,22 +24,44 @@ const TranslationSchema = z.object({
   meta_description: z.string(),
 });
 
-const RU_EN_SYSTEM = `You are a professional technical translator. You translate developer-focused articles from Russian to natural, fluent English written for an English-speaking software audience.
+// Private-use-area delimiters wrap each placeholder index so tokens never
+// collide with real numbers (years, versions) when restoring.
+const PH_OPEN = String.fromCharCode(0xe000);
+const PH_CLOSE = String.fromCharCode(0xe001);
 
-STRICT RULES:
-- Preserve ALL HTML tags, structure, and attributes (href, id, class, src, alt) EXACTLY. Do not add, remove, or reorder tags.
-- Inside <code> and <pre>: keep all code, shell commands, file paths, identifiers, and string literals byte-for-byte. The ONLY exception is human-language COMMENTS — translate the comment text (e.g. after //, #, --, ;, or inside /* */ and <!-- -->) into English, leaving the comment markers and all surrounding code unchanged.
-- Keep product, library, tool, and brand names as-is (e.g. Rclone, Go, Docker, S3).
-- Translate prose naturally; do not translate technical jargon into awkward calques.
-- Do not invent content or add commentary.
+const CODE_RULES =
+  `STRICT RULES:\n` +
+  `- Preserve ALL HTML tags, structure, and attributes EXACTLY. Do not add, remove, or reorder tags.\n` +
+  `- The text contains placeholder tokens: a special marker character, a number, and a closing marker (they stand in for code and URLs). Reproduce each token EXACTLY as it appears — do not translate it, add spaces inside or around it, change the number, reorder, or drop it.\n` +
+  `- Keep product, library, tool, and brand names unchanged (e.g. Rclone, Go, Docker, S3).\n` +
+  `- Do not invent content or add commentary.\n` +
+  `Fields: "title" (plain text), "body_html" (translated HTML, same tags + placeholders), "excerpt" (~160 chars), "meta_description" (<=160 chars).`;
 
-Fields: "title" (plain text), "body_html" (translated HTML, same structure), "excerpt" (1-2 sentence summary, ~160 chars), "meta_description" (SEO description, max 160 chars).`;
+const RU_EN_SYSTEM =
+  `You are a professional technical translator. Translate developer-focused articles from Russian to natural, fluent English for an English-speaking software audience. Never leave Russian text untranslated.\n\n` +
+  CODE_RULES;
 
 /**
- * Pull the JSON object out of the model's reply. Reasoning models (e.g.
- * MiniMax) prepend a <think>…</think> block and may wrap JSON in code fences,
- * so we strip those before parsing.
+ * Hide code blocks and URL attribute values behind placeholder tokens so the
+ * model cannot rewrite/space-out code or break links. Returns the masked text
+ * and a restore fn that puts the originals back.
  */
+function protectHtml(html: string): { masked: string; restore: (s: string) => string } {
+  const store: string[] = [];
+  const keep = (orig: string): string => {
+    const token = `${PH_OPEN}${store.length}${PH_CLOSE}`;
+    store.push(orig);
+    return token;
+  };
+  let masked = html;
+  masked = masked.replace(/<pre[\s\S]*?<\/pre>/gi, (m) => keep(m)); // whole code blocks
+  masked = masked.replace(/<code[\s\S]*?<\/code>/gi, (m) => keep(m)); // inline code
+  masked = masked.replace(/\b(href|src)=("|')(.*?)\2/gi, (_m, attr, q, url) => `${attr}=${q}${keep(url)}${q}`);
+  const re = new RegExp(`${PH_OPEN}(\\d+)${PH_CLOSE}`, "g");
+  const restore = (s: string): string => s.replace(re, (_m, i) => store[Number(i)] ?? "");
+  return { masked, restore };
+}
+
 function extractJsonObject(content: string): string {
   let s = content ?? "";
   const end = s.lastIndexOf("</think>");
@@ -53,18 +75,24 @@ function extractJsonObject(content: string): string {
 }
 
 /**
- * One OpenAI structured-output call. Provider is selected by env
- * (OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_API_KEY). We request a JSON-schema
- * response but parse/validate the content ourselves so reasoning models that
- * emit a <think> preamble still work.
+ * One structured-output translation call. Code/URLs in `bodyHtml` are masked
+ * before sending and restored after, so the model only ever rewrites prose.
  */
-async function structuredTranslate(env: Env, system: string, user: string): Promise<TranslatedArticle> {
+async function structuredTranslate(
+  env: Env,
+  system: string,
+  intro: string,
+  bodyHtml: string
+): Promise<TranslatedArticle> {
   const client = new OpenAI({
     apiKey: env.OPENAI_API_KEY,
     baseURL: env.OPENAI_BASE_URL || undefined,
-    timeout: 120_000, // bound a slow/hung LLM call (per request)
-    maxRetries: 1,
+    timeout: 180_000, // bound a slow/hung LLM call (per request)
+    maxRetries: 0,
   });
+
+  const { masked, restore } = protectHtml(bodyHtml);
+  const user = `${intro}\n\nBODY_HTML:\n${masked}`;
 
   const completion = await client.chat.completions.create({
     model: env.OPENAI_MODEL,
@@ -92,7 +120,7 @@ async function structuredTranslate(env: Env, system: string, user: string): Prom
 
   return {
     title: parsed.title,
-    body_html: parsed.body_html,
+    body_html: restore(parsed.body_html),
     excerpt: parsed.excerpt.slice(0, 300),
     meta_description: (parsed.meta_description || parsed.excerpt).slice(0, 200),
   };
@@ -104,11 +132,8 @@ export async function translateArticle(
   title: string,
   bodyHtml: string
 ): Promise<TranslatedArticle> {
-  const user =
-    `Translate this article to English.\n\n` +
-    `TITLE (Russian):\n${title}\n\n` +
-    `BODY_HTML (Russian):\n${bodyHtml}`;
-  return structuredTranslate(env, RU_EN_SYSTEM, user);
+  const intro = `Translate this article to English.\n\nTITLE (Russian):\n${title}`;
+  return structuredTranslate(env, RU_EN_SYSTEM, intro, bodyHtml);
 }
 
 /** Translate the already-English article into a target locale (e.g. "de"). */
@@ -121,16 +146,10 @@ export async function translateToLocale(
   const system =
     `You are a professional technical translator. Translate the developer article from English into ${langName}, ` +
     `written naturally for a ${langName}-speaking software audience.\n\n` +
-    `STRICT RULES:\n` +
-    `- Preserve ALL HTML tags, structure, and attributes EXACTLY.\n` +
-    `- Inside <code> and <pre>: keep all code, commands, paths, identifiers, and string literals byte-for-byte. The ONLY exception is human-language COMMENTS — translate the comment text (after //, #, --, ;, or inside /* */ and <!-- -->) into ${langName}, leaving the comment markers and surrounding code unchanged.\n` +
-    `- Keep product, library, tool, and brand names as-is.\n` +
-    `- Do not invent content or add commentary.\n\n` +
-    `Fields: "title", "body_html" (same HTML structure), "excerpt", "meta_description".`;
-  const user =
+    CODE_RULES;
+  const intro =
     `TITLE (English):\n${en.title}\n\n` +
     `EXCERPT (English):\n${en.excerpt}\n\n` +
-    `META (English):\n${en.meta_description}\n\n` +
-    `BODY_HTML (English):\n${en.body_html}`;
-  return structuredTranslate(env, system, user);
+    `META (English):\n${en.meta_description}`;
+  return structuredTranslate(env, system, intro, en.body_html);
 }

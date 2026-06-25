@@ -27,7 +27,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 25            # hard cap so a hung run can't linger
+    timeout-minutes: 15            # hard cap so a hung run can't linger
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,7 +55,8 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
           R2_PUBLIC_BASE: "https://pub-e9ef8e20353d4db4867193b8578534d8.r2.dev"
           SOURCE_BASE: "https://devtrends.ru"
-          USER_AGENT: "devtrends-en-bot/0.1 (+https://devtrends-en.pages.dev)"
+          USER_AGENT: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
           TARGET_LOCALES: "es,de,zh,ja,fr,pt,it,nl,pl"
           PROCESS_BATCH: "1"
+          LOCALE_BUDGET: "6"
         run: npx tsx apps/parser-runner/src/main.ts "${{ steps.mode.outputs.mode }}"
