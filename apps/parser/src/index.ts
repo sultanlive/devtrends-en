@@ -27,17 +27,20 @@ async function runPipeline(env: Env): Promise<{ discovered: number; processed: n
       const scraped = await scrapeArticle(env, row.source_url);
       const slug = row.slug ?? String(row.id);
       const media = await processMedia(env, scraped.bodyHtml, slug);
-      const translated = await translateArticle(env, scraped.title, media.bodyHtml);
-      await markPublished(env, row, { ...scraped, bodyHtml: media.bodyHtml }, translated, media.ogImage);
 
-      // Translate the English version into each target locale (best-effort).
+      // English is the pivot: translate Russian -> English ONCE, then translate
+      // every other locale FROM this English result (not from the Russian
+      // source) for better LLM quality.
+      const en = await translateArticle(env, scraped.title, media.bodyHtml);
+      await markPublished(env, row, { ...scraped, bodyHtml: media.bodyHtml }, en, media.ogImage);
+
       const locales = (env.TARGET_LOCALES ?? DEFAULT_TARGET_LOCALES)
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
       for (const loc of locales) {
         try {
-          const localized = await translateToLocale(env, loc, translated);
+          const localized = await translateToLocale(env, loc, en);
           await saveTranslation(env, row.id, loc, localized);
         } catch (e) {
           console.log(`locale ${loc} failed for ${row.slug}: ${String(e).slice(0, 120)}`);
