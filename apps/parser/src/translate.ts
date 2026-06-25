@@ -28,7 +28,7 @@ const RU_EN_SYSTEM = `You are a professional technical translator. You translate
 
 STRICT RULES:
 - Preserve ALL HTML tags, structure, and attributes (href, id, class, src, alt) EXACTLY. Do not add, remove, or reorder tags.
-- NEVER translate or alter anything inside <code> or <pre> tags — code, shell commands, file paths, and identifiers must remain byte-for-byte identical.
+- Inside <code> and <pre>: keep all code, shell commands, file paths, identifiers, and string literals byte-for-byte. The ONLY exception is human-language COMMENTS — translate the comment text (e.g. after //, #, --, ;, or inside /* */ and <!-- -->) into English, leaving the comment markers and all surrounding code unchanged.
 - Keep product, library, tool, and brand names as-is (e.g. Rclone, Go, Docker, S3).
 - Translate prose naturally; do not translate technical jargon into awkward calques.
 - Do not invent content or add commentary.
@@ -121,7 +121,7 @@ export async function translateToLocale(
     `written naturally for a ${langName}-speaking software audience.\n\n` +
     `STRICT RULES:\n` +
     `- Preserve ALL HTML tags, structure, and attributes EXACTLY.\n` +
-    `- NEVER translate or alter anything inside <code> or <pre> tags.\n` +
+    `- Inside <code> and <pre>: keep all code, commands, paths, identifiers, and string literals byte-for-byte. The ONLY exception is human-language COMMENTS — translate the comment text (after //, #, --, ;, or inside /* */ and <!-- -->) into ${langName}, leaving the comment markers and surrounding code unchanged.\n` +
     `- Keep product, library, tool, and brand names as-is.\n` +
     `- Do not invent content or add commentary.\n\n` +
     `Fields: "title", "body_html" (same HTML structure), "excerpt", "meta_description".`;

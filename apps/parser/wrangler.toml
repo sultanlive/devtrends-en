@@ -4,9 +4,10 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 # Two schedules once on Workers Paid — activate by replacing the line below with:
-#   crons = ["*/30 * * * *", "11 */6 * * *"]
-# "*/30 * * * *" -> process 1 article every 30 min (~48/day); the index.ts handler
-# routes the "11 */6 * * *" tick to full sitemap discovery (every 6h) instead.
+#   crons = ["0 * * * *", "11 */6 * * *"]
+# "0 * * * *" -> process 1 article hourly (~24/day; gentle ramp for a new domain;
+# bump to "*/30 * * * *" for ~48/day later). The index.ts handler routes the
+# "11 */6 * * *" tick to full sitemap discovery (every 6h) instead.
 [triggers]
 crons = []   # PAUSED until the $5 Workers Paid plan is active
 
