@@ -6,7 +6,7 @@ import SectionIcon from "../../components/SectionIcon.astro";
 import { getEnv, setCacheHeaders, siteUrl, canonical } from "../../lib/site";
 import { listBySection, countBySection, listLanguages } from "../../lib/db";
 import { getSection } from "../../lib/sections";
-import { DEFAULT_LOCALE, localeHref, sectionTitle, t } from "../../lib/i18n";
+import { DEFAULT_LOCALE, localeHref, sectionTitle, sectionDesc, t } from "../../lib/i18n";
 import { breadcrumbLd } from "../../lib/seo";
 
 const { section: slug } = Astro.params as { section: string };
@@ -34,6 +34,7 @@ const articles = await listBySection(env.DB, section.tags, { limit: perPage, off
 const totalPages = Math.max(1, Math.ceil(total / perPage));
 
 const title = sectionTitle(locale, section.slug, section.title);
+const desc = sectionDesc(locale, section.slug, section.description);
 const path = `/sections/${section.slug}`;
 const basePath = localeHref(locale, path);
 const site = siteUrl(Astro.locals, Astro.url);
@@ -43,7 +44,7 @@ const jsonLd = breadcrumbLd([
 ]);
 ---
 
-<Base title={`${title} | ${env.SITE_NAME}`} description={section.description} path={path} ogType="website" jsonLd={jsonLd}>
+<Base title={`${title} | ${env.SITE_NAME}`} description={desc} path={path} ogType="website" jsonLd={jsonLd}>
   <div class="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <div class="hidden lg:block">
       <Sidebar languages={languages} activeSection={section.slug} />
@@ -60,7 +61,7 @@ const jsonLd = breadcrumbLd([
           <h1 class="font-display text-3xl font-bold tracking-tight">{title}</h1>
           <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} {t(locale, "projects_word")}</span>
         </div>
-        <p class="mt-3 max-w-2xl text-muted dark:text-muted-dark">{section.description}</p>
+        <p class="mt-3 max-w-2xl text-muted dark:text-muted-dark">{desc}</p>
       </header>
 
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

@@ -185,3 +185,111 @@ export function sectionTitle(locale: string, slug: string, fallback: string): st
   const loc = (isLocale(locale) ? locale : DEFAULT_LOCALE) as Locale;
   return SECTION_TITLES[slug]?.[loc] ?? fallback;
 }
+
+// Section descriptions per locale (English falls back to the sections.ts text).
+const SECTION_DESCRIPTIONS: Record<string, Partial<Dict>> = {
+  frontend: {
+    es: "Frameworks de UI, herramientas de build y todo lo que corre en el navegador: React, Vue, Svelte, bundlers y servidores de desarrollo.",
+    de: "UI-Frameworks, Build-Tools und alles, was im Browser läuft – React, Vue, Svelte, Bundler und Dev-Server.",
+    zh: "UI 框架、构建工具，以及一切在浏览器中运行的东西——React、Vue、Svelte、打包工具和开发服务器。",
+    ja: "UI フレームワーク、ビルドツール、そしてブラウザで動くものすべて — React、Vue、Svelte、バンドラー、開発サーバー。",
+    fr: "Frameworks UI, outils de build et tout ce qui tourne dans le navigateur — React, Vue, Svelte, bundlers et serveurs de dev.",
+    pt: "Frameworks de UI, ferramentas de build e tudo o que roda no navegador — React, Vue, Svelte, bundlers e servidores de desenvolvimento.",
+    it: "Framework UI, strumenti di build e tutto ciò che gira nel browser — React, Vue, Svelte, bundler e dev server.",
+    nl: "UI-frameworks, build-tools en alles wat in de browser draait — React, Vue, Svelte, bundlers en dev-servers.",
+    pl: "Frameworki UI, narzędzia build i wszystko, co działa w przeglądarce — React, Vue, Svelte, bundlery i serwery deweloperskie.",
+  },
+  backend: {
+    es: "Frameworks de servidor, APIs REST y GraphQL, bases de datos, caché y la infraestructura detrás de tu aplicación.",
+    de: "Server-Frameworks, REST- und GraphQL-APIs, Datenbanken, Caching und die Infrastruktur hinter deiner App.",
+    zh: "服务端框架、REST 和 GraphQL API、数据库、缓存，以及应用背后的基础设施。",
+    ja: "サーバーフレームワーク、REST・GraphQL API、データベース、キャッシュ、そしてアプリを支えるインフラ。",
+    fr: "Frameworks serveur, API REST et GraphQL, bases de données, cache et l'infrastructure derrière votre application.",
+    pt: "Frameworks de servidor, APIs REST e GraphQL, bancos de dados, cache e a infraestrutura por trás do seu app.",
+    it: "Framework server, API REST e GraphQL, database, caching e l'infrastruttura dietro la tua app.",
+    nl: "Server-frameworks, REST- en GraphQL-API's, databases, caching en de infrastructuur achter je app.",
+    pl: "Frameworki serwerowe, API REST i GraphQL, bazy danych, cache i infrastruktura stojąca za aplikacją.",
+  },
+  mobile: {
+    es: "Desarrollo iOS y Android: SDK nativos, kits multiplataforma y librerías mobile-first.",
+    de: "iOS- und Android-Entwicklung – native SDKs, plattformübergreifende Toolkits und Mobile-First-Bibliotheken.",
+    zh: "iOS 和 Android 开发——原生 SDK、跨平台工具包和移动优先的库。",
+    ja: "iOS・Android 開発 — ネイティブ SDK、クロスプラットフォームのツールキット、モバイルファーストのライブラリ。",
+    fr: "Développement iOS et Android — SDK natifs, kits multiplateformes et bibliothèques mobile-first.",
+    pt: "Desenvolvimento iOS e Android — SDKs nativos, kits multiplataforma e bibliotecas mobile-first.",
+    it: "Sviluppo iOS e Android — SDK nativi, toolkit multipiattaforma e librerie mobile-first.",
+    nl: "iOS- en Android-ontwikkeling — native SDK's, cross-platform toolkits en mobile-first libraries.",
+    pl: "Programowanie na iOS i Android — natywne SDK, narzędzia cross-platform i biblioteki mobile-first.",
+  },
+  devops: {
+    es: "Contenedores, orquestación, CI/CD, infraestructura como código y observabilidad para desplegar y operar software.",
+    de: "Container, Orchestrierung, CI/CD, Infrastructure as Code und Observability zum Ausliefern und Betreiben von Software.",
+    zh: "容器、编排、CI/CD、基础设施即代码，以及用于交付和运行软件的可观测性。",
+    ja: "コンテナ、オーケストレーション、CI/CD、Infrastructure as Code、そしてソフトウェアの配信・運用のための可観測性。",
+    fr: "Conteneurs, orchestration, CI/CD, infrastructure as code et observabilité pour livrer et exploiter vos logiciels.",
+    pt: "Contêineres, orquestração, CI/CD, infraestrutura como código e observabilidade para entregar e operar software.",
+    it: "Container, orchestrazione, CI/CD, infrastructure as code e osservabilità per rilasciare e gestire software.",
+    nl: "Containers, orchestratie, CI/CD, infrastructure as code en observability om software uit te rollen en te draaien.",
+    pl: "Kontenery, orkiestracja, CI/CD, infrastruktura jako kod i observability do wdrażania i utrzymania oprogramowania.",
+  },
+  "ai-ml": {
+    es: "Frameworks de machine learning, herramientas de datos y las librerías que impulsan las aplicaciones de IA modernas.",
+    de: "Machine-Learning-Frameworks, Daten-Tools und die Bibliotheken hinter modernen KI-Anwendungen.",
+    zh: "机器学习框架、数据工具，以及驱动现代 AI 应用的库。",
+    ja: "機械学習フレームワーク、データツール、そして最新の AI アプリを支えるライブラリ。",
+    fr: "Frameworks de machine learning, outillage de données et les bibliothèques qui propulsent les applications d'IA modernes.",
+    pt: "Frameworks de machine learning, ferramentas de dados e as bibliotecas que impulsionam as aplicações de IA modernas.",
+    it: "Framework di machine learning, strumenti per i dati e le librerie dietro le moderne applicazioni di IA.",
+    nl: "Machine-learning-frameworks, datatooling en de libraries achter moderne AI-toepassingen.",
+    pl: "Frameworki uczenia maszynowego, narzędzia do danych i biblioteki napędzające nowoczesne aplikacje AI.",
+  },
+  gamedev: {
+    es: "Motores de juego, gráficos, física y herramientas de assets para crear juegos 2D y 3D.",
+    de: "Game-Engines, Grafik, Physik und Asset-Tools für die Entwicklung von 2D- und 3D-Spielen.",
+    zh: "游戏引擎、图形、物理和资源工具，用于制作 2D 和 3D 游戏。",
+    ja: "ゲームエンジン、グラフィックス、物理、アセットツール — 2D・3D ゲーム制作のために。",
+    fr: "Moteurs de jeu, graphismes, physique et outils d'assets pour créer des jeux 2D et 3D.",
+    pt: "Motores de jogo, gráficos, física e ferramentas de assets para criar jogos 2D e 3D.",
+    it: "Motori di gioco, grafica, fisica e strumenti per gli asset per creare giochi 2D e 3D.",
+    nl: "Game-engines, graphics, physics en asset-tools om 2D- en 3D-games te bouwen.",
+    pl: "Silniki gier, grafika, fizyka i narzędzia do assetów do tworzenia gier 2D i 3D.",
+  },
+  blockchain: {
+    es: "Contratos inteligentes, librerías Web3, DeFi y herramientas para aplicaciones descentralizadas.",
+    de: "Smart Contracts, Web3-Bibliotheken, DeFi und Tools für dezentrale Anwendungen.",
+    zh: "智能合约、Web3 库、DeFi，以及去中心化应用的工具。",
+    ja: "スマートコントラクト、Web3 ライブラリ、DeFi、そして分散型アプリのツール。",
+    fr: "Smart contracts, bibliothèques Web3, DeFi et outils pour applications décentralisées.",
+    pt: "Contratos inteligentes, bibliotecas Web3, DeFi e ferramentas para aplicações descentralizadas.",
+    it: "Smart contract, librerie Web3, DeFi e strumenti per applicazioni decentralizzate.",
+    nl: "Smart contracts, Web3-libraries, DeFi en tools voor gedecentraliseerde applicaties.",
+    pl: "Smart kontrakty, biblioteki Web3, DeFi i narzędzia do aplikacji zdecentralizowanych.",
+  },
+  embedded: {
+    es: "Microcontroladores, IoT, drivers y sistemas en tiempo real cercanos al hardware.",
+    de: "Mikrocontroller, IoT, Treiber und Echtzeitsysteme nah an der Hardware.",
+    zh: "微控制器、物联网、驱动程序，以及贴近硬件的实时系统。",
+    ja: "マイコン、IoT、ドライバー、そしてハードウェアに近いリアルタイムシステム。",
+    fr: "Microcontrôleurs, IoT, pilotes et systèmes temps réel au plus près du matériel.",
+    pt: "Microcontroladores, IoT, drivers e sistemas em tempo real próximos do hardware.",
+    it: "Microcontrollori, IoT, driver e sistemi real-time vicini all'hardware.",
+    nl: "Microcontrollers, IoT, drivers en realtime-systemen dicht op de hardware.",
+    pl: "Mikrokontrolery, IoT, sterowniki i systemy czasu rzeczywistego blisko sprzętu.",
+  },
+  security: {
+    es: "Pentesting, criptografía, seguridad de redes y herramientas para defensores e investigadores.",
+    de: "Penetration Testing, Kryptografie, Netzwerksicherheit und Tools für Verteidiger und Forscher.",
+    zh: "渗透测试、密码学、网络安全，以及面向防御者和研究人员的工具。",
+    ja: "ペネトレーションテスト、暗号、ネットワークセキュリティ、そして防御側・研究者向けのツール。",
+    fr: "Tests d'intrusion, cryptographie, sécurité réseau et outils pour défenseurs et chercheurs.",
+    pt: "Pentest, criptografia, segurança de redes e ferramentas para defensores e pesquisadores.",
+    it: "Penetration testing, crittografia, sicurezza di rete e strumenti per difensori e ricercatori.",
+    nl: "Pentesting, cryptografie, netwerkbeveiliging en tools voor verdedigers en onderzoekers.",
+    pl: "Testy penetracyjne, kryptografia, bezpieczeństwo sieci i narzędzia dla obrońców i badaczy.",
+  },
+};
+
+export function sectionDesc(locale: string, slug: string, fallback: string): string {
+  const loc = (isLocale(locale) ? locale : DEFAULT_LOCALE) as Locale;
+  return SECTION_DESCRIPTIONS[slug]?.[loc] ?? fallback;
+}

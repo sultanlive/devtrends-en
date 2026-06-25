@@ -1,7 +1,7 @@
 ---
 import type { Section } from "../lib/sections";
 import SectionIcon from "./SectionIcon.astro";
-import { localeHref, sectionTitle, DEFAULT_LOCALE } from "../lib/i18n";
+import { localeHref, sectionTitle, sectionDesc, DEFAULT_LOCALE } from "../lib/i18n";
 
 export interface Props {
   section: Section;
@@ -10,6 +10,7 @@ export interface Props {
 const { section, count } = Astro.props;
 const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 const title = sectionTitle(locale, section.slug, section.title);
+const description = sectionDesc(locale, section.slug, section.description);
 const href = localeHref(locale, `/sections/${section.slug}`);
 ---
 
@@ -23,6 +24,6 @@ const href = localeHref(locale, `/sections/${section.slug}`);
       </span>
       <span class="font-mono text-xs text-muted dark:text-muted-dark">{count}</span>
     </div>
-    <p class="line-clamp-2 text-sm leading-relaxed text-muted dark:text-muted-dark">{section.description}</p>
+    <p class="line-clamp-2 text-sm leading-relaxed text-muted dark:text-muted-dark">{description}</p>
   </div>
 </article>
