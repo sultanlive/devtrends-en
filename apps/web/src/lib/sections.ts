@@ -7,6 +7,7 @@ export interface Section {
   title: string;
   description: string;
   color: string;
+  icon: string;
   tags: string[];
 }
 
@@ -16,6 +17,7 @@ export const SECTIONS: Section[] = [
     title: "Frontend",
     description: "UI frameworks, build tools, and everything that runs in the browser — React, Vue, Svelte, bundlers, and dev servers.",
     color: "#38BDF8",
+    icon: "code",
     tags: ["frontend", "spa", "browser", "bundler", "dev-server", "build-tool", "compiler", "reactive", "css", "html", "framework"],
   },
   {
@@ -23,6 +25,7 @@ export const SECTIONS: Section[] = [
     title: "Backend",
     description: "Server frameworks, REST and GraphQL APIs, databases, caching, and the infrastructure behind your app.",
     color: "#34D399",
+    icon: "server",
     tags: ["backend", "api", "http", "web-framework", "wsgi", "database", "cache", "in-memory", "networking", "server", "mvc", "enterprise", "fullstack", "orm"],
   },
   {
@@ -30,6 +33,7 @@ export const SECTIONS: Section[] = [
     title: "Mobile",
     description: "iOS and Android development — native SDKs, cross-platform toolkits, and mobile-first libraries.",
     color: "#FB7185",
+    icon: "smartphone",
     tags: ["mobile", "android", "ios", "react-native", "flutter"],
   },
   {
@@ -37,6 +41,7 @@ export const SECTIONS: Section[] = [
     title: "DevOps",
     description: "Containers, orchestration, CI/CD, infrastructure as code, and observability for shipping and running software.",
     color: "#F59E0B",
+    icon: "cycle",
     tags: ["devops", "iac", "cloud", "automation", "monitoring", "observability", "dashboards", "metrics", "containers", "docker", "kubernetes", "ci-cd"],
   },
   {
@@ -44,6 +49,7 @@ export const SECTIONS: Section[] = [
     title: "AI / ML",
     description: "Machine learning frameworks, data tooling, and the libraries powering modern AI applications.",
     color: "#A78BFA",
+    icon: "sparkles",
     tags: ["ai", "machine-learning", "nlp", "transformers", "ml", "data", "dataframe", "analytics", "computer-vision"],
   },
   {
@@ -51,6 +57,7 @@ export const SECTIONS: Section[] = [
     title: "GameDev",
     description: "Game engines, graphics, physics, and asset tooling for building 2D and 3D games.",
     color: "#F472B6",
+    icon: "gamepad",
     tags: ["game", "gamedev", "graphics", "engine", "shaders", "physics"],
   },
   {
@@ -58,6 +65,7 @@ export const SECTIONS: Section[] = [
     title: "Blockchain",
     description: "Smart contracts, Web3 libraries, DeFi, and decentralized application tooling.",
     color: "#FBBF24",
+    icon: "link",
     tags: ["blockchain", "solidity", "web3", "crypto", "defi", "nft", "dapp"],
   },
   {
@@ -65,6 +73,7 @@ export const SECTIONS: Section[] = [
     title: "Embedded",
     description: "Microcontrollers, IoT, drivers, and real-time systems close to the metal.",
     color: "#2DD4BF",
+    icon: "cpu",
     tags: ["embedded", "iot", "rtos", "microcontroller", "firmware", "drivers"],
   },
   {
@@ -72,6 +81,7 @@ export const SECTIONS: Section[] = [
     title: "Security",
     description: "Penetration testing, cryptography, network security, and tooling for defenders and researchers.",
     color: "#F87171",
+    icon: "shield",
     tags: ["security", "cryptography", "pentest", "forensics", "malware", "infosec"],
   },
 ];

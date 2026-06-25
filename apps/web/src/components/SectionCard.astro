@@ -1,5 +1,6 @@
 ---
 import type { Section } from "../lib/sections";
+import SectionIcon from "./SectionIcon.astro";
 
 export interface Props {
   section: Section;
@@ -12,8 +13,8 @@ const { section, count } = Astro.props;
   <span class="h-1 w-full shrink-0" style={`background:${section.color}`} aria-hidden="true"></span>
   <div class="flex flex-1 flex-col gap-2 p-5">
     <div class="flex items-center justify-between gap-2">
-      <span class="inline-flex items-center gap-2 font-display text-lg font-semibold tracking-tight">
-        <span class="h-2.5 w-2.5 rounded-full" style={`background:${section.color}`}></span>
+      <span class="inline-flex items-center gap-2.5 font-display text-lg font-semibold tracking-tight">
+        <SectionIcon name={section.icon} color={section.color} class="h-5 w-5 shrink-0" />
         <a href={`/sections/${section.slug}`} class="after:absolute after:inset-0 group-hover:underline decoration-2 underline-offset-2">{section.title}</a>
       </span>
       <span class="font-mono text-xs text-muted dark:text-muted-dark">{count}</span>

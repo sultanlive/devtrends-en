@@ -5,6 +5,7 @@ import Sidebar from "../../components/Sidebar.astro";
 import { getEnv, canonical, setCacheHeaders } from "../../lib/site";
 import { listBySection, countBySection, listLanguages } from "../../lib/db";
 import { getSection } from "../../lib/sections";
+import SectionIcon from "../../components/SectionIcon.astro";
 
 const { section: slug } = Astro.params as { section: string };
 const env = getEnv(Astro.locals);
@@ -50,7 +51,7 @@ const basePath = `/sections/${section.slug}`;
 
       <header class="mb-8 border-b border-line pb-6 dark:border-line-dark">
         <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span class="h-5 w-5 rounded-full" style={`background:${section.color}`} aria-hidden="true"></span>
+          <SectionIcon name={section.icon} color={section.color} class="h-7 w-7 shrink-0" />
           <h1 class="font-display text-3xl font-bold tracking-tight">{section.title}</h1>
           <span class="font-mono text-sm text-muted dark:text-muted-dark">{total} projects</span>
         </div>

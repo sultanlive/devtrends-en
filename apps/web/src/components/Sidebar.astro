@@ -4,6 +4,7 @@ import { getEnv } from "../lib/site";
 import { publishedTagSets } from "../lib/db";
 import { langColor, langLabel } from "../lib/lang";
 import { SECTIONS, tagsMatchSection } from "../lib/sections";
+import SectionIcon from "./SectionIcon.astro";
 
 export interface Props {
   languages: LanguageCount[];
@@ -69,7 +70,7 @@ const sections = SECTIONS.map((section) => ({
                   : "text-ink hover:bg-line dark:text-ink-dark dark:hover:bg-line-dark",
               ]}
             >
-              <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${section.color}`}></span>
+              <SectionIcon name={section.icon} color={isActive ? undefined : section.color} class="h-4 w-4 shrink-0" />
               <span class="truncate font-medium">{section.title}</span>
               <span
                 class:list={[

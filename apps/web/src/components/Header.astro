@@ -3,6 +3,7 @@ import { getEnv } from "../lib/site";
 import { listLanguages, publishedTagSets } from "../lib/db";
 import { langColor, langLabel } from "../lib/lang";
 import { SECTIONS, tagsMatchSection } from "../lib/sections";
+import SectionIcon from "./SectionIcon.astro";
 
 export interface Props {
   siteName: string;
@@ -88,7 +89,7 @@ const sections = SECTIONS.filter((s) => tagSets.some((ts) => tagsMatchSection(ts
         <div>
           {sections.map((s) => (
             <a href={`/sections/${s.slug}`} class="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm">
-              <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${s.color}`}></span>
+              <SectionIcon name={s.icon} color={s.color} class="h-4 w-4 shrink-0" />
               <span class="truncate font-medium">{s.title}</span>
             </a>
           ))}
