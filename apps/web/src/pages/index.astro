@@ -2,9 +2,11 @@
 import Base from "../layouts/Base.astro";
 import ArticleCard from "../components/ArticleCard.astro";
 import Sidebar from "../components/Sidebar.astro";
+import SectionCard from "../components/SectionCard.astro";
 import { getEnv, canonical, setCacheHeaders } from "../lib/site";
 import { langColor, langLabel } from "../lib/lang";
-import { listArticles, countArticles, listLanguages } from "../lib/db";
+import { listArticles, countArticles, listLanguages, publishedTagSets } from "../lib/db";
+import { SECTIONS, tagsMatchSection } from "../lib/sections";
 
 const env = getEnv(Astro.locals);
 setCacheHeaders(Astro, 300);
@@ -23,6 +25,16 @@ const totalAll = q ? await countArticles(env.DB) : total;
 const totalPages = Math.max(1, Math.ceil(total / perPage));
 const showHero = !q && page === 1;
 const description = `Curated open-source developer tools and projects, translated to English. ${totalAll} projects across ${languages.length} languages.`;
+
+// Section cards (only on the landing view). One query; counted in JS.
+let sectionCards: { section: (typeof SECTIONS)[number]; count: number }[] = [];
+if (showHero) {
+  const tagSets = await publishedTagSets(env.DB);
+  sectionCards = SECTIONS.map((section) => ({
+    section,
+    count: tagSets.filter((ts) => tagsMatchSection(ts, section)).length,
+  })).filter((x) => x.count > 0);
+}
 ---
 
 <Base
@@ -41,6 +53,15 @@ const description = `Curated open-source developer tools and projects, translate
       <p class="mt-4 font-mono text-sm text-muted dark:text-muted-dark">
         {totalAll.toLocaleString("en-US")} projects · {languages.length} languages · refreshed continuously
       </p>
+    </section>
+  )}
+
+  {showHero && sectionCards.length > 0 && (
+    <section class="mb-12">
+      <h2 class="eyebrow mb-4 text-muted dark:text-muted-dark">Browse by section</h2>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {sectionCards.map(({ section, count }) => <SectionCard section={section} count={count} />)}
+      </div>
     </section>
   )}
 

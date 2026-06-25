@@ -129,6 +129,49 @@ export async function listLanguages(db: D1Database): Promise<LanguageCount[]> {
   return results ?? [];
 }
 
+function tagOrClause(tags: string[]): { sql: string; binds: string[] } {
+  const sql = tags.map(() => "tags LIKE ? ESCAPE '\\'").join(" OR ");
+  const binds = tags.map((t) => `%"${escapeLike(t)}"%`);
+  return { sql: `(${sql})`, binds };
+}
+
+export async function listBySection(
+  db: D1Database,
+  tags: string[],
+  opts: { limit: number; offset: number } = { limit: 24, offset: 0 }
+): Promise<Article[]> {
+  if (tags.length === 0) return [];
+  const { sql, binds } = tagOrClause(tags);
+  const { results } = await db
+    .prepare(
+      `SELECT ${LIST_COLS} FROM articles
+        WHERE status = 'published' AND ${sql}
+        ORDER BY COALESCE(source_lastmod, updated_at) DESC, id DESC
+        LIMIT ? OFFSET ?`
+    )
+    .bind(...binds, opts.limit, opts.offset)
+    .all<Article>();
+  return results ?? [];
+}
+
+export async function countBySection(db: D1Database, tags: string[]): Promise<number> {
+  if (tags.length === 0) return 0;
+  const { sql, binds } = tagOrClause(tags);
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS n FROM articles WHERE status = 'published' AND ${sql}`)
+    .bind(...binds)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+/** Parsed tag arrays for every published article — for computing section counts in one query. */
+export async function publishedTagSets(db: D1Database): Promise<string[][]> {
+  const { results } = await db
+    .prepare("SELECT tags FROM articles WHERE status = 'published' AND tags IS NOT NULL")
+    .all<{ tags: string }>();
+  return (results ?? []).map((r) => parseTags(r.tags));
+}
+
 export async function allTags(db: D1Database): Promise<string[]> {
   const { results } = await db
     .prepare("SELECT tags FROM articles WHERE status = 'published' AND tags IS NOT NULL")

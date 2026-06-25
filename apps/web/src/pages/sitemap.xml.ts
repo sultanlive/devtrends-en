@@ -1,6 +1,7 @@
 import type { APIContext } from "astro";
 import { getEnv, canonical, articlePath } from "../lib/site";
-import { allPublishedUrls, listLanguages, allTags } from "../lib/db";
+import { allPublishedUrls, listLanguages, allTags, publishedTagSets } from "../lib/db";
+import { SECTIONS, tagsMatchSection } from "../lib/sections";
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -8,14 +9,18 @@ function esc(s: string): string {
 
 export async function GET(context: APIContext): Promise<Response> {
   const env = getEnv(context.locals);
-  const [articles, languages, tags] = await Promise.all([
+  const [articles, languages, tags, tagSets] = await Promise.all([
     allPublishedUrls(env.DB),
     listLanguages(env.DB),
     allTags(env.DB),
+    publishedTagSets(env.DB),
   ]);
+
+  const sections = SECTIONS.filter((s) => tagSets.some((ts) => tagsMatchSection(ts, s)));
 
   const urls: { loc: string; lastmod?: string | null }[] = [
     { loc: canonical(env.SITE_URL, "/") },
+    ...sections.map((s) => ({ loc: canonical(env.SITE_URL, `/sections/${s.slug}`) })),
     ...languages.map((l) => ({ loc: canonical(env.SITE_URL, `/${l.language}`) })),
     ...tags.map((t) => ({ loc: canonical(env.SITE_URL, `/tag/${encodeURIComponent(t)}`) })),
     ...articles.map((a) => ({

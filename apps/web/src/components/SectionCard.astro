@@ -1,0 +1,23 @@
+---
+import type { Section } from "../lib/sections";
+
+export interface Props {
+  section: Section;
+  count: number;
+}
+const { section, count } = Astro.props;
+---
+
+<article class="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition duration-200 hover:-translate-y-0.5 hover:border-transparent hover:shadow-[0_10px_30px_-12px_rgba(14,17,22,0.22)] dark:border-line-dark dark:bg-surface-dark dark:hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
+  <span class="h-1 w-full shrink-0" style={`background:${section.color}`} aria-hidden="true"></span>
+  <div class="flex flex-1 flex-col gap-2 p-5">
+    <div class="flex items-center justify-between gap-2">
+      <span class="inline-flex items-center gap-2 font-display text-lg font-semibold tracking-tight">
+        <span class="h-2.5 w-2.5 rounded-full" style={`background:${section.color}`}></span>
+        <a href={`/sections/${section.slug}`} class="after:absolute after:inset-0 group-hover:underline decoration-2 underline-offset-2">{section.title}</a>
+      </span>
+      <span class="font-mono text-xs text-muted dark:text-muted-dark">{count}</span>
+    </div>
+    <p class="line-clamp-2 text-sm leading-relaxed text-muted dark:text-muted-dark">{section.description}</p>
+  </div>
+</article>
