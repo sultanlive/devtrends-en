@@ -1,3 +1,6 @@
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { z } from "zod";
 import type { Env, TranslatedArticle } from "./types";
 
 /** Locale code -> language name for translation prompts. */
@@ -13,7 +16,15 @@ export const LOCALE_LANG: Record<string, string> = {
   pl: "Polish",
 };
 
-const SYSTEM_PROMPT = `You are a professional technical translator. You translate developer-focused articles from Russian to natural, fluent English written for an English-speaking software audience.
+// Structured-output schema: the model must return exactly these fields.
+const TranslationSchema = z.object({
+  title: z.string(),
+  body_html: z.string(),
+  excerpt: z.string(),
+  meta_description: z.string(),
+});
+
+const RU_EN_SYSTEM = `You are a professional technical translator. You translate developer-focused articles from Russian to natural, fluent English written for an English-speaking software audience.
 
 STRICT RULES:
 - Preserve ALL HTML tags, structure, and attributes (href, id, class, src, alt) EXACTLY. Do not add, remove, or reorder tags.
@@ -22,59 +33,44 @@ STRICT RULES:
 - Translate prose naturally; do not translate technical jargon into awkward calques.
 - Do not invent content or add commentary.
 
-OUTPUT: Return ONLY a single JSON object (no markdown fences) with exactly these keys:
-  "title": the translated article title as plain text,
-  "body_html": the translated article body as HTML (same structure as input),
-  "excerpt": a 1-2 sentence English summary, plain text, ~160 characters,
-  "meta_description": an SEO meta description, plain text, max 160 characters.`;
-
-function stripFences(s: string): string {
-  const t = s.trim();
-  if (t.startsWith("```")) {
-    return t.replace(/^```[a-z]*\n?/i, "").replace(/```$/, "").trim();
-  }
-  return t;
-}
-
-/** One OpenAI-compatible Chat Completions call returning a parsed JSON object. */
-async function callLlmJson(env: Env, system: string, user: string): Promise<Partial<TranslatedArticle>> {
-  const endpoint = `${env.OPENAI_BASE_URL.replace(/\/$/, "")}/chat/completions`;
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: env.OPENAI_MODEL,
-      temperature: 0.2,
-      max_tokens: 8000,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`LLM ${res.status}: ${errText.slice(0, 300)}`);
-  }
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("LLM returned empty content");
-  try {
-    return JSON.parse(stripFences(content));
-  } catch {
-    throw new Error("LLM did not return valid JSON");
-  }
-}
+Fields: "title" (plain text), "body_html" (translated HTML, same structure), "excerpt" (1-2 sentence summary, ~160 chars), "meta_description" (SEO description, max 160 chars).`;
 
 /**
- * Translate one article (Russian source -> English) via an OpenAI-compatible
- * endpoint. Provider is selected entirely by env (OPENAI_BASE_URL / OPENAI_MODEL
- * / OPENAI_API_KEY) — swapping providers needs no code change.
+ * One OpenAI structured-output call. Provider is selected by env
+ * (OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_API_KEY) — point baseURL at any
+ * OpenAI-compatible endpoint that supports JSON-schema structured outputs.
  */
+async function structuredTranslate(env: Env, system: string, user: string): Promise<TranslatedArticle> {
+  const client = new OpenAI({
+    apiKey: env.OPENAI_API_KEY,
+    baseURL: env.OPENAI_BASE_URL || undefined,
+  });
+
+  const completion = await client.beta.chat.completions.parse({
+    model: env.OPENAI_MODEL,
+    temperature: 0.2,
+    max_tokens: 8000,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    response_format: zodResponseFormat(TranslationSchema, "translation"),
+  });
+
+  const message = completion.choices[0]?.message;
+  if (message?.refusal) throw new Error(`LLM refused: ${message.refusal}`);
+  const parsed = message?.parsed;
+  if (!parsed) throw new Error("LLM returned no structured output");
+
+  return {
+    title: parsed.title,
+    body_html: parsed.body_html,
+    excerpt: parsed.excerpt.slice(0, 300),
+    meta_description: (parsed.meta_description || parsed.excerpt).slice(0, 200),
+  };
+}
+
+/** Translate one article (Russian source -> English). */
 export async function translateArticle(
   env: Env,
   title: string,
@@ -84,14 +80,7 @@ export async function translateArticle(
     `Translate this article to English.\n\n` +
     `TITLE (Russian):\n${title}\n\n` +
     `BODY_HTML (Russian):\n${bodyHtml}`;
-  const parsed = await callLlmJson(env, SYSTEM_PROMPT, user);
-  if (!parsed.title || !parsed.body_html) throw new Error("LLM JSON missing title/body_html");
-  return {
-    title: parsed.title,
-    body_html: parsed.body_html,
-    excerpt: (parsed.excerpt ?? "").slice(0, 300),
-    meta_description: (parsed.meta_description ?? parsed.excerpt ?? "").slice(0, 200),
-  };
+  return structuredTranslate(env, RU_EN_SYSTEM, user);
 }
 
 /** Translate the already-English article into a target locale (e.g. "de"). */
@@ -109,18 +98,11 @@ export async function translateToLocale(
     `- NEVER translate or alter anything inside <code> or <pre> tags.\n` +
     `- Keep product, library, tool, and brand names as-is.\n` +
     `- Do not invent content or add commentary.\n\n` +
-    `OUTPUT: Return ONLY a JSON object with keys: "title", "body_html", "excerpt", "meta_description".`;
+    `Fields: "title", "body_html" (same HTML structure), "excerpt", "meta_description".`;
   const user =
     `TITLE (English):\n${en.title}\n\n` +
     `EXCERPT (English):\n${en.excerpt}\n\n` +
     `META (English):\n${en.meta_description}\n\n` +
     `BODY_HTML (English):\n${en.body_html}`;
-  const parsed = await callLlmJson(env, system, user);
-  if (!parsed.title || !parsed.body_html) throw new Error(`LLM ${locale} missing title/body_html`);
-  return {
-    title: parsed.title,
-    body_html: parsed.body_html,
-    excerpt: (parsed.excerpt ?? "").slice(0, 300),
-    meta_description: (parsed.meta_description ?? parsed.excerpt ?? "").slice(0, 200),
-  };
+  return structuredTranslate(env, system, user);
 }
