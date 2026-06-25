@@ -29,10 +29,27 @@ html {
   font-family: var(--font-sans);
   background: var(--color-paper);
   color: var(--color-ink);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 html.dark {
   background: var(--color-paper-dark);
   color: var(--color-ink-dark);
+}
+
+/* Mobile safety net: never let anything force horizontal scroll, and break
+   long words / URLs instead of overflowing the viewport. */
+body {
+  overflow-x: hidden;
+}
+h1, h2, h3 {
+  overflow-wrap: break-word;
+}
+.prose {
+  overflow-wrap: break-word;
+}
+.prose img {
+  height: auto;
 }
 
 /* Eyebrow / label utility — mono, tracked, small caps feel. */
