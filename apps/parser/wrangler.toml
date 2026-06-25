@@ -3,10 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Cron: runs frequently; each tick discovers new sitemap entries and processes
-# a small batch of pending articles (keeps CPU + subrequests within free tier).
+# Cron is PAUSED while reworking discover/batching to fit Free-plan limits
+# (50 subrequests + CPU per invocation). Restore with: crons = ["*/3 * * * *"].
 [triggers]
-crons = ["*/3 * * * *"]
+crons = []
 
 # --- Non-secret config (override per environment) ---
 [vars]
