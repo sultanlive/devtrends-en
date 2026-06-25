@@ -1,22 +1,24 @@
 import type { Env, ArticleRow, ScrapedArticle, TranslatedArticle } from "./types";
 
-/** Upsert a per-locale translation for an article. */
-export async function saveTranslation(
+/** Write all per-locale translations for an article in a single D1 batch
+ *  (one subrequest instead of one per locale). */
+export async function saveTranslationsBatch(
   env: Env,
   articleId: number,
-  locale: string,
-  tr: TranslatedArticle
+  items: { locale: string; tr: TranslatedArticle }[]
 ): Promise<void> {
-  await env.DB.prepare(
-    `INSERT INTO article_translations (article_id, locale, title, excerpt, body_html, meta_description, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-     ON CONFLICT(article_id, locale) DO UPDATE SET
-       title = excluded.title, excerpt = excluded.excerpt,
-       body_html = excluded.body_html, meta_description = excluded.meta_description,
-       updated_at = datetime('now')`
-  )
-    .bind(articleId, locale, tr.title, tr.excerpt, tr.body_html, tr.meta_description)
-    .run();
+  if (items.length === 0) return;
+  const stmts = items.map(({ locale, tr }) =>
+    env.DB.prepare(
+      `INSERT INTO article_translations (article_id, locale, title, excerpt, body_html, meta_description, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(article_id, locale) DO UPDATE SET
+         title = excluded.title, excerpt = excluded.excerpt,
+         body_html = excluded.body_html, meta_description = excluded.meta_description,
+         updated_at = datetime('now')`
+    ).bind(articleId, locale, tr.title, tr.excerpt, tr.body_html, tr.meta_description)
+  );
+  await env.DB.batch(stmts);
 }
 
 /** Derive `{language}` / `{slug}` from a source URL like /go/rclone-rclone. */
@@ -47,49 +49,37 @@ export function toSlug(input: string): string {
     .slice(0, 96);
 }
 
+export interface DiscoveredItem {
+  source_url: string;
+  source_lastmod: string | null;
+  language: string;
+  slug: string;
+}
+
 /**
- * Insert a discovered URL as pending if new, or bump source_lastmod (and
- * re-queue) if the source was updated since we last saw it. Returns true if a
- * row was inserted or re-queued.
+ * Bulk-enqueue discovered URLs as pending using batched INSERT OR IGNORE.
+ * Dedup is handled by the source_url / (language, slug) UNIQUE constraints, so
+ * no per-row SELECT is needed. Each db.batch() is a single subrequest, which
+ * keeps the whole-sitemap sweep well within per-invocation limits. Returns the
+ * number of newly inserted rows.
+ *
+ * Note: this only inserts NEW URLs; it does not re-queue an already-published
+ * article when its source changes (handled separately if needed).
  */
-export async function upsertDiscovered(
-  env: Env,
-  source_url: string,
-  source_lastmod: string | null,
-  language: string,
-  rawSlug: string
-): Promise<boolean> {
-  const existing = await env.DB.prepare(
-    "SELECT id, source_lastmod, status FROM articles WHERE source_url = ?"
-  )
-    .bind(source_url)
-    .first<{ id: number; source_lastmod: string | null; status: string }>();
-
-  if (!existing) {
-    await env.DB.prepare(
-      `INSERT INTO articles (source_url, source_lastmod, language, slug, status)
-       VALUES (?, ?, ?, ?, 'pending')`
-    )
-      .bind(source_url, source_lastmod, language, toSlug(rawSlug))
-      .run();
-    return true;
+export async function bulkInsertDiscovered(env: Env, items: DiscoveredItem[]): Promise<number> {
+  const CHUNK = 200; // statements per batch (one db.batch() = one subrequest)
+  let inserted = 0;
+  for (let i = 0; i < items.length; i += CHUNK) {
+    const stmts = items.slice(i, i + CHUNK).map((it) =>
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO articles (source_url, source_lastmod, language, slug, status)
+         VALUES (?, ?, ?, ?, 'pending')`
+      ).bind(it.source_url, it.source_lastmod, it.language, it.slug)
+    );
+    const results = await env.DB.batch(stmts);
+    for (const r of results) inserted += r.meta?.changes ?? 0;
   }
-
-  // Re-queue if the source changed since we processed it.
-  if (
-    source_lastmod &&
-    existing.source_lastmod &&
-    source_lastmod > existing.source_lastmod &&
-    existing.status === "published"
-  ) {
-    await env.DB.prepare(
-      "UPDATE articles SET source_lastmod = ?, status = 'pending', updated_at = datetime('now') WHERE id = ?"
-    )
-      .bind(source_lastmod, existing.id)
-      .run();
-    return true;
-  }
-  return false;
+  return inserted;
 }
 
 /** Claim the next batch of pending articles (oldest first), marking them processing. */

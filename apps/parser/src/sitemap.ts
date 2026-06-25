@@ -1,14 +1,22 @@
-import { parseHTML } from "linkedom";
 import type { Env } from "./types";
-import { qsa, qs } from "./dom";
-import { parseSourceUrl, upsertDiscovered } from "./db";
+import { parseSourceUrl, toSlug, bulkInsertDiscovered, type DiscoveredItem } from "./db";
 
 export interface SitemapEntry {
   loc: string;
   lastmod: string | null;
 }
 
-/** Fetch and parse sitemap.xml into {loc, lastmod} entries. */
+function decodeXml(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+/** Fetch and parse sitemap.xml into {loc, lastmod} entries. Uses a lightweight
+ *  regex pass instead of a full DOM parse — far cheaper CPU on a large sitemap. */
 export async function fetchSitemap(env: Env): Promise<SitemapEntry[]> {
   const url = `${env.SOURCE_BASE.replace(/\/$/, "")}/sitemap.xml`;
   const res = await fetch(url, {
@@ -17,14 +25,12 @@ export async function fetchSitemap(env: Env): Promise<SitemapEntry[]> {
   if (!res.ok) throw new Error(`sitemap fetch ${res.status}`);
   const xml = await res.text();
 
-  // linkedom parses XML-ish documents fine for our <url><loc><lastmod> shape.
-  const { document } = parseHTML(xml);
   const entries: SitemapEntry[] = [];
-  for (const node of qsa(document, "url")) {
-    const loc = qs(node, "loc")?.textContent?.trim();
+  for (const block of xml.match(/<url>[\s\S]*?<\/url>/g) ?? []) {
+    const loc = block.match(/<loc>([\s\S]*?)<\/loc>/)?.[1]?.trim();
     if (!loc) continue;
-    const lastmod = qs(node, "lastmod")?.textContent?.trim() || null;
-    entries.push({ loc, lastmod });
+    const lastmod = block.match(/<lastmod>([\s\S]*?)<\/lastmod>/)?.[1]?.trim() || null;
+    entries.push({ loc: decodeXml(loc), lastmod });
   }
   return entries;
 }
@@ -45,25 +51,16 @@ export async function discover(env: Env): Promise<number> {
 
   const backfillLimit = Number(env.BACKFILL_LIMIT) || 0;
 
-  // Only apply the initial cap until we actually have rows; afterward, process
-  // everything new so updates aren't missed once the site is seeded.
+  // Only apply the initial cap until we actually have rows; afterward, enqueue
+  // everything so the whole catalog gets backfilled over time.
   const seeded = await env.DB.prepare("SELECT COUNT(*) AS n FROM articles").first<{ n: number }>();
   const limit = (seeded?.n ?? 0) === 0 && backfillLimit > 0 ? backfillLimit : articles.length;
 
-  let count = 0;
-  for (const e of articles.slice(0, limit)) {
-    try {
-      const inserted = await upsertDiscovered(
-        env,
-        e.loc,
-        e.lastmod,
-        e.parsed!.language,
-        e.parsed!.rawSlug
-      );
-      if (inserted) count++;
-    } catch (err) {
-      console.log(`discover skip ${e.loc}: ${String(err).slice(0, 120)}`);
-    }
-  }
-  return count;
+  const items: DiscoveredItem[] = articles.slice(0, limit).map((e) => ({
+    source_url: e.loc,
+    source_lastmod: e.lastmod,
+    language: e.parsed!.language,
+    slug: toSlug(e.parsed!.rawSlug),
+  }));
+  return bulkInsertDiscovered(env, items);
 }
