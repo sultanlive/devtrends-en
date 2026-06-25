@@ -71,10 +71,10 @@ if (showHero) {
     </div>
 
     <div>
-      <!-- Mobile language chips -->
-      <div class="mb-6 flex gap-2 overflow-x-auto pb-1 lg:hidden">
+      <!-- Mobile language chips (wrap to multiple rows; no horizontal scroll) -->
+      <div class="mb-6 flex flex-wrap gap-2 lg:hidden">
         {languages.map((l) => (
-          <a href={`/${l.language}`} class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium dark:border-line-dark dark:bg-surface-dark">
+          <a href={`/${l.language}`} class="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium dark:border-line-dark dark:bg-surface-dark">
             <span class="h-2 w-2 rounded-full" style={`background:${langColor(l.language)}`}></span>
             {langLabel(l.language)} <span class="font-mono text-muted dark:text-muted-dark">{l.n}</span>
           </a>
