@@ -15,7 +15,7 @@ const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 
 const section = getSection(slug);
 if (!section) {
-  return new Response("Not Found", { status: 404 });
+  return Astro.rewrite("/404");
 }
 
 const [total, languages] = await Promise.all([
@@ -23,7 +23,7 @@ const [total, languages] = await Promise.all([
   listLanguages(env.DB),
 ]);
 if (total === 0) {
-  return new Response("Not Found", { status: 404 });
+  return Astro.rewrite("/404");
 }
 setCacheHeaders(Astro, 300);
 

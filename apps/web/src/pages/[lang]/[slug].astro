@@ -13,7 +13,7 @@ const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 
 const article = await getArticle(env.DB, lang, slug, locale);
 if (!article) {
-  return new Response("Not Found", { status: 404 });
+  return Astro.rewrite("/404");
 }
 setCacheHeaders(Astro, 600);
 

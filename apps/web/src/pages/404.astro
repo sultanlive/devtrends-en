@@ -1,14 +1,29 @@
 ---
 import Base from "../layouts/Base.astro";
 import { DEFAULT_LOCALE, localeHref, t } from "../lib/i18n";
+
 const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
+// Serve a real 404 status (works both for the adapter's not-found route and for
+// dynamic pages that Astro.rewrite() here when a record is missing).
+Astro.response.status = 404;
+const homeHref = localeHref(locale, "/");
 ---
 
-<Base title="404" description={t(locale, "not_found_sub")} path="/404" noindex={true}>
-  <section class="py-24 text-center">
+<Base title={`404 — ${t(locale, "not_found_sub")}`} description={t(locale, "not_found_sub")} path="/404" noindex={true}>
+  <section class="flex flex-col items-center py-24 text-center">
     <p class="eyebrow text-muted dark:text-muted-dark">{t(locale, "error")}</p>
-    <h1 class="mt-2 font-display text-6xl font-bold tracking-tight">404</h1>
-    <p class="mt-4 text-muted dark:text-muted-dark">{t(locale, "not_found_sub")}</p>
-    <a href={localeHref(locale, "/")} class="mt-6 inline-block rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← {t(locale, "back_home")}</a>
+    <div class="mt-3 font-display text-7xl font-bold tracking-tight sm:text-8xl">
+      <span>4</span><span class="text-muted dark:text-muted-dark">0</span><span>4</span>
+    </div>
+    <p class="mt-4 max-w-md text-muted dark:text-muted-dark">{t(locale, "not_found_sub")}</p>
+
+    <form action={homeHref} method="get" role="search" class="mt-8 w-full max-w-sm">
+      <div class="relative">
+        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted dark:text-muted-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+        <input type="search" name="q" placeholder={t(locale, "search_placeholder")} class="w-full rounded-lg border border-line bg-surface py-2.5 pl-9 pr-3 font-mono text-sm dark:border-line-dark dark:bg-surface-dark" />
+      </div>
+    </form>
+
+    <a href={homeHref} class="mt-4 inline-block rounded-lg border border-line px-4 py-2 font-mono text-sm hover:bg-line dark:border-line-dark dark:hover:bg-line-dark">← {t(locale, "back_home")}</a>
   </section>
 </Base>

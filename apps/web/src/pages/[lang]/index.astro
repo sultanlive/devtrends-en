@@ -17,7 +17,7 @@ const [total, languages] = await Promise.all([
   listLanguages(env.DB),
 ]);
 if (total === 0) {
-  return new Response("Not Found", { status: 404 });
+  return Astro.rewrite("/404");
 }
 setCacheHeaders(Astro, 300);
 
