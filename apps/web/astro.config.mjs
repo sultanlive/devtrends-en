@@ -8,6 +8,9 @@ import tailwindcss from "@tailwindcss/vite";
 // --persist-to dir at repo root).
 export default defineConfig({
   output: "server",
+  // Inline the (small) page CSS into the HTML so it isn't a render-blocking
+  // request — improves FCP/LCP.
+  build: { inlineStylesheets: "always" },
   adapter: cloudflare({
     platformProxy: {
       enabled: true,

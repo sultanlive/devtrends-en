@@ -89,13 +89,22 @@ const alternates = LOCALES.map((loc) => ({
 
     {ldItems.map((item) => <script type="application/ld+json" set:html={JSON.stringify(item)} />)}
 
-    <!-- Fonts: Space Grotesk (display) + IBM Plex Sans/Mono. -->
+    <!-- Fonts: Space Grotesk (display) + IBM Plex Sans/Mono. Loaded
+         non-render-blocking (display=swap shows fallback text immediately). -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+      />
+    </noscript>
 
     <!-- Pre-paint theme init (no FOUC); no framework needed. -->
     <script is:inline>

@@ -28,7 +28,7 @@ id = "122273d1fb3544e5a9ef714bacc98101"
 # sitemap (works in dev and prod automatically). Set it to a real domain to pin
 # the canonical host in production (recommended once you have a custom domain,
 # so the *.pages.dev preview doesn't self-canonicalize).
-SITE_URL = ""
+SITE_URL = "https://devtrends.cc"
 R2_PUBLIC_BASE = "https://pub-e9ef8e20353d4db4867193b8578534d8.r2.dev"
 SITE_NAME = "DevTrends EN"
 TWITTER_HANDLE = ""            # e.g. "@devtrends" — adds <meta name="twitter:site">; optional
