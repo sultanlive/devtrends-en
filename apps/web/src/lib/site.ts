@@ -11,6 +11,7 @@ export function getEnv(locals: App.Locals): CfEnv {
     R2_PUBLIC_BASE: env.R2_PUBLIC_BASE ?? "",
     SITE_NAME: env.SITE_NAME ?? "DevTrends EN",
     TWITTER_HANDLE: env.TWITTER_HANDLE ?? "",
+    GA_ID: env.GA_ID ?? "",
   };
 }
 

@@ -23,6 +23,9 @@ const locale = Astro.locals.locale ?? DEFAULT_LOCALE;
 const siteName = env.SITE_NAME;
 const site = siteUrl(Astro.locals, Astro.url);
 const twitterHandle = env.TWITTER_HANDLE;
+// Load Google Analytics only in production builds and only when configured, so
+// dev/preview traffic doesn't pollute the stats.
+const gaId = import.meta.env.PROD ? env.GA_ID : "";
 const ldItems = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
 const canonicalUrl = canonical(site, localeHref(locale, path));
@@ -37,6 +40,19 @@ const alternates = LOCALES.map((loc) => ({
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {gaId && (
+      <>
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+        <script is:inline define:vars={{ gaId }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', gaId);
+        </script>
+      </>
+    )}
+
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />

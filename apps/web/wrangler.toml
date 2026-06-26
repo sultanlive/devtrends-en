@@ -32,3 +32,4 @@ SITE_URL = ""
 R2_PUBLIC_BASE = "https://pub-e9ef8e20353d4db4867193b8578534d8.r2.dev"
 SITE_NAME = "DevTrends EN"
 TWITTER_HANDLE = ""            # e.g. "@devtrends" — adds <meta name="twitter:site">; optional
+GA_ID = "G-4E723QK34H"         # Google Analytics 4 measurement ID (prod only)
