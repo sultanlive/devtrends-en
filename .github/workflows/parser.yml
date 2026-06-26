@@ -58,5 +58,6 @@ jobs:
           USER_AGENT: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
           TARGET_LOCALES: "es,de,zh,ja,fr,pt,it,nl,pl"
           PROCESS_BATCH: "1"
-          LOCALE_BUDGET: "6"
+          LOCALE_BUDGET: "9"        # fully localize the newest article per run
+          LOCALE_CONCURRENCY: "3"   # parallel locale translations
         run: npx tsx apps/parser-runner/src/main.ts "${{ steps.mode.outputs.mode }}"

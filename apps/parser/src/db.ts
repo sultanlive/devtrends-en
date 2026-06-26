@@ -144,43 +144,55 @@ export async function markFailed(env: Env, id: number, error: string): Promise<v
 }
 
 /**
- * Published articles that don't yet have a translation for `locale` (newest
- * first). Used to backfill missing locales a few at a time — resumable, so a
- * timed-out run is simply retried on the next tick. Returns the English source
- * fields needed to translate.
+ * Newest published articles that don't yet have ALL target locales, each with
+ * the list of locales still missing and the English source to translate from.
+ * Used to backfill locales newest-article-first (so recent posts get fully
+ * localized before older ones). Resumable: a timed-out run just retries.
  */
-export async function getPublishedMissingLocale(
+export async function getArticlesNeedingLocales(
   env: Env,
-  locale: string,
-  limit: number
-): Promise<{ id: number; slug: string | null; language: string | null; en: TranslatedArticle }[]> {
+  targetLocales: string[],
+  limitArticles: number
+): Promise<{ id: number; slug: string | null; language: string | null; en: TranslatedArticle; missing: string[] }[]> {
+  if (targetLocales.length === 0) return [];
   const { results } = await env.DB.prepare(
     `SELECT a.id, a.slug, a.language, a.title_en, a.excerpt_en, a.body_html_en, a.meta_description
        FROM articles a
       WHERE a.status = 'published' AND a.title_en IS NOT NULL
-        AND NOT EXISTS (
-          SELECT 1 FROM article_translations t WHERE t.article_id = a.id AND t.locale = ?
-        )
+        AND (SELECT count(*) FROM article_translations t WHERE t.article_id = a.id) < ?
       ORDER BY a.updated_at DESC
       LIMIT ?`
   )
-    .bind(locale, limit)
+    .bind(targetLocales.length, limitArticles)
     .all<{
       id: number; slug: string | null; language: string | null;
       title_en: string | null; excerpt_en: string | null;
       body_html_en: string | null; meta_description: string | null;
     }>();
-  return (results ?? []).map((r) => ({
-    id: r.id,
-    slug: r.slug,
-    language: r.language,
-    en: {
-      title: r.title_en ?? "",
-      body_html: r.body_html_en ?? "",
-      excerpt: r.excerpt_en ?? "",
-      meta_description: r.meta_description ?? "",
-    },
-  }));
+
+  const out = [];
+  for (const r of results ?? []) {
+    const pres = await env.DB.prepare(
+      "SELECT locale FROM article_translations WHERE article_id = ?"
+    )
+      .bind(r.id)
+      .all<{ locale: string }>();
+    const present = new Set((pres.results ?? []).map((x) => x.locale));
+    const missing = targetLocales.filter((l) => !present.has(l));
+    out.push({
+      id: r.id,
+      slug: r.slug,
+      language: r.language,
+      missing,
+      en: {
+        title: r.title_en ?? "",
+        body_html: r.body_html_en ?? "",
+        excerpt: r.excerpt_en ?? "",
+        meta_description: r.meta_description ?? "",
+      },
+    });
+  }
+  return out;
 }
 
 export async function logRun(

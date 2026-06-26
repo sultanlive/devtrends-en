@@ -6,7 +6,7 @@ import { R2Wrangler } from "./r2";
 import { discover } from "../../parser/src/sitemap";
 import {
   claimPending, markPublished, markFailed, logRun,
-  saveTranslationsBatch, getPublishedMissingLocale,
+  saveTranslationsBatch, getArticlesNeedingLocales,
 } from "../../parser/src/db";
 import { scrapeArticle } from "../../parser/src/scrape";
 import { processMedia } from "../../parser/src/media";
@@ -16,6 +16,18 @@ import type { Env, TranslatedArticle } from "../../parser/src/types";
 const DEFAULT_TARGET_LOCALES = "es,de,zh,ja,fr,pt,it,nl,pl";
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+/** Run `fn` over `items` with at most `limit` in flight at once. */
+async function mapPool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  const workers = Array.from({ length: Math.min(Math.max(limit, 1), items.length) }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      await fn(items[idx]);
+    }
+  });
+  await Promise.all(workers);
+}
 
 function buildEnv(): Env {
   const e = process.env;
@@ -48,11 +60,12 @@ async function runProcess(env: Env): Promise<void> {
     .filter(Boolean);
 
   // Per-run budgets keep each run bounded and well under the job timeout.
-  const enBudget = Number(env.PROCESS_BATCH) || 1;           // new English articles
-  const localeBudget = Number(process.env.LOCALE_BUDGET) || 6; // missing-locale fills
+  const enBudget = Number(env.PROCESS_BATCH) || 1;            // new English articles
+  const localeBudget = Number(process.env.LOCALE_BUDGET) || 9; // missing-locale fills
+  const concurrency = Number(process.env.LOCALE_CONCURRENCY) || 3; // parallel translations
 
-  // 1) Publish new articles in English (fast, ~1 LLM call each). Locales are
-  //    filled separately below so a slow/timed-out run never loses them.
+  // 1) Publish new articles in English (sequential — image uploads block).
+  //    Locales are filled separately below so a slow/timed-out run never loses them.
   let rows = await claimPending(env, enBudget);
   if (rows.length === 0) {
     await discover(env); // refill if the queue is empty
@@ -76,25 +89,31 @@ async function runProcess(env: Env): Promise<void> {
     }
   }
 
-  // 2) Backfill missing locales (newest articles first), saved one at a time so
-  //    progress survives a timeout. Bounded by localeBudget per run.
-  let filled = 0;
-  for (const loc of locales) {
-    if (filled >= localeBudget) break;
-    const tasks = await getPublishedMissingLocale(env, loc, localeBudget - filled);
-    for (const t of tasks) {
-      if (filled >= localeBudget) break;
-      try {
-        const tr = await translateToLocale(env, loc, t.en);
-        await saveTranslationsBatch(env, t.id, [{ locale: loc, tr }]);
-        filled++;
-      } catch (e) {
-        console.log(`locale ${loc} failed for ${t.slug}: ${String(e).slice(0, 120)}`);
-      }
+  // 2) Gather missing-locale tasks, newest article first, capped at the budget.
+  const needing = await getArticlesNeedingLocales(env, locales, localeBudget);
+  const tasks: { id: number; slug: string | null; locale: string; en: TranslatedArticle }[] = [];
+  for (const a of needing) {
+    for (const loc of a.missing) {
+      if (tasks.length >= localeBudget) break;
+      tasks.push({ id: a.id, slug: a.slug, locale: loc, en: a.en });
     }
+    if (tasks.length >= localeBudget) break;
   }
 
-  console.log(`done: published ${processed}, failed ${failed}, locales filled ${filled}`);
+  // 3) Translate locales in parallel (bounded). Each is saved on its own, so a
+  //    timeout just leaves the rest for the next run.
+  let filled = 0;
+  await mapPool(tasks, concurrency, async (t) => {
+    try {
+      const tr = await translateToLocale(env, t.locale, t.en);
+      await saveTranslationsBatch(env, t.id, [{ locale: t.locale, tr }]);
+      filled++;
+    } catch (e) {
+      console.log(`locale ${t.locale} failed for ${t.slug}: ${String(e).slice(0, 120)}`);
+    }
+  });
+
+  console.log(`done: published ${processed}, failed ${failed}, locales filled ${filled}/${tasks.length}`);
   await logRun(env, 0, processed, failed, `locales+${filled}`);
 }
 
